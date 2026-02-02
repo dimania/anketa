@@ -45,7 +45,8 @@ class DatabaseBot:
         # Ctreate table Users
         await self.dbm.execute('''
         CREATE TABLE IF NOT EXISTS Answers (
-        id_user TEXT NOT NULL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_user TEXT NOT NULL,
         name_user TEXT NOT NULL,
         nick_user TEXT NOT NULL,
         question_id TEXT NOT NULL,

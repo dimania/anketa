@@ -492,78 +492,6 @@ async def create_choice_dialog(question, choice_buttons, event, level):
                 if sts.BASIC_MENU in choice_buttons[button_press]: #FIXME sts.BASIC_MENU in list may be or not accidentally?
                     await create_basic_menu(level, event)
 
-async def create_search_dialog(question, choice_buttons, event, level):
-    ''' Create dialog for choice buttons with text question
-        and run function when choice was 
-        question = "Text message for choice"
-        dict choice_buttons = {
-            "button1": ["Yes", "_yes",func_show_sombody0,[arg1,arg2...], SHOW_OR_NOT_MENU (optional) ],
-            "button2": ["No", "_no", func_show_sombody1,[arg1,arg2...]],
-            "button3": ["Cancel", "_cancel", func_show_sombody0,[arg1,arg2...]]
-        }
-        event = bot event handled id
-        level = user level for show menu exxtended or no
-    '''
-    rating_items=["5","6","7","8","9","10"]
-    buttons_rating = []
-    i=0
-    for r_item in rating_items:
-        buttons_rating.append( Button.inline(rating_items[i],f"rating_{r_item}".encode()) )
-        i=i+1
-
-    logging.debug("Create choice buttons")
-    search_data = {}
-    search_data["rating"]=''
-        
-    await event.respond(question, parse_mode='md', buttons=buttons_rating)
-    #msg = await bot.send_message(event.query.user_id, question, parse_mode='md', buttons=buttons_rating)
-
-    # Run hundler for dialog
-    @bot.on(events.CallbackQuery(pattern='rating_.*'))
-    async def callback_bot_choice(event):
-        logging.debug(f"Get callback event_bot_list {event}")  
-        button_data = event.data.decode()
-        #await event.delete()
-        logging.info(f"Get callbackquery -> : {button_data}")
-        button_data = button_data.replace('rating_','') 
-        for r_item in rating_items:
-            # clear previous selection
-            logging.info(f"All cycle selection: {r_item} -> {search_data["rating"]}")
-            if r_item == '✅'+search_data["rating"]:
-                index_item=rating_items.index(r_item)
-                rating_items[index_item] = rating_items[index_item].replace('✅','') #remove ✅  
-                logging.info(f"Clear previous selection: {r_item} -> {search_data["rating"]} -> {index_item} -> {rating_items[index_item]}")
-                #if already set
-                r_item=r_item.replace('✅','')
-            
-            if button_data == r_item:
-                logging.info(f"Set on button: {r_item}")
-                index_item=rating_items.index(r_item)
-                rating_items[index_item] = "✅" + rating_items[index_item] #add ✅
-
-        buttons_rating.clear() # clear all old buttons
-        # Craeate new buttons with clear ✅
-        i=0
-        for r_item in rating_items:
-            buttons_rating.append( Button.inline(rating_items[i],f"rating_{r_item}".encode()) ) 
-            i=i+1     
-        
-        search_data["rating"]=button_data #add selection for return result 
-        await event.respond(question, parse_mode='md',buttons=buttons_rating) #FIXME may be edit buttons?
-        #await bot.edit_message(msg, buttons=buttons_rating)            
-
-    @bot.on(events.NewMessage()) 
-    async def search_handler(event_search):
-        logging.info(f"Get search string: {event_search.message.message}")
-        if len(event_search.message.message)  < 3:
-            await event.respond(_("Search string very short - 3 chars min."))
-            #send_menu =sts.BASIC_MENU
-        search_data["sstr"]=event_search.message.message
-        logging.info(f"Return search data:  rating={search_data["rating"]} sstr={search_data["sstr"]} ")
-        bot.remove_event_handler(search_handler)
-        #await create_basic_menu(level, event)    
-        return search_data
-
 async def create_add_share(event , level):
     ''' Select users for share list films
         event = bot event handled id
@@ -836,21 +764,19 @@ async def home():
 async def main_frontend():
     ''' Loop for bot connection '''
     
-    @bot.on(events.NewMessage(pattern='/start'))
+    @bot.on(events.NewMessage())
     async def bot_handler_nm_bot(event_bot):
         logging.debug(f"Get NewMessage event_bot: {event_bot}")
         menu_level = 0
-        i=0
-        #user = event_bot.message.peer_id.user_id        
+      
         channel = PeerChannel(Channel_my_id)
         id_user = user = event_bot.message.peer_id.user_id
-
         logging.info(f"LOGIN USER_ID:{event_bot.message.peer_id.user_id}")
         user_ent = await bot.get_entity(id_user)
-        name_user = user_ent.username
-
-        if not name_user: name_user = user_ent.first_name
-        logging.debug(f"Get username for id {id_user}: {name_user}")
+        nickname = user_ent.username
+        first_name = user_ent.first_name
+        
+        logging.debug(f"Get username for id {id_user}: {nickname}")
 
 
         try:
@@ -862,44 +788,21 @@ async def main_frontend():
         if permissions.is_admin:
             #await event_bot.respond("You are admin channel!")
             pass
-
+        question_id=0 
         if event_bot.message.message == '/start':
-            await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n")
-            # ask first question
-            await event_bot.respond(question[0])
-            question_id=0
-            
-
-            @bot.on(events.NewMessage())
-            async def answers_handler(event_quest):
-                logging.debug(f"Get NewMessage event_bot: {event_quest}")
-                #get answer
-                async with dbm.DatabaseBot(sts.db_name) as db:     
-                    await db.db_add_answer(id_user, name_user, "nick_user", '0', event_quest.message.message)
-                #ask next question
-                logging.info(f"Else not start={event_quest.message.message}")    
-                if question_id == len(question):
-                    #End questions
-                    await event_bot.respond(f"Мы закончили, Желаете пройти опрос заново?\n")
-                    question_id=0
-                    bot.remove_event_handler(answers_handler)   
-                else:
-                    await event_bot.respond(question[question_id])
-                    question_id=question_id+1
-
-
+            await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n\n")
+            async with bot.conversation(id_user) as conv:
+                for cur_question  in all_questions: 
+                    await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
+                    response = await conv.get_response()
+                    resp_text = response.text
+                    logging.info(f"Get respond text: {question_id} : {resp_text}")
+                    async with dbm.DatabaseBot(sts.db_name) as db:     
+                       row = await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
+                    question_id = question_id + 1
+                await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
+                conv.cancel()
         else: 
-            ##get answer
-            #async with dbm.DatabaseBot(sts.db_name) as db:     
-            #    row = await db.db_add_answer(id_user, name_user, "nick_user", question_id, event_bot.message.message)
-            #ask next question
-            #logging.info(f"Else not start={event_bot.message.message}")    
-            #if question_id == len(question):
-            #    await event_bot.respond(f"Мы закончили, Желаете пройти опрос заново?\n")
-            #    question_id=0   
-            #else:
-            #    await event_bot.respond(next(question))
-            #question_id=question_id+1
             pass
                 
 
@@ -933,7 +836,7 @@ async def main():
 sts.get_config()
 # Enable logging
 #question = {"q1":"tesxt_q1","q2":"text_q2","q3":"text_q3","q4":"text_q4","q5":"text_q5"}
-question = ["tesxt_q1","text_q2","text_q3","text_q4","text_q5"]
+all_questions = ["tesxt_q1","text_q2","text_q3","text_q4","text_q5"]
 filename=os.path.join(os.path.dirname(sts.logfile),'frontend_'+os.path.basename(sts.logfile))
 logging.basicConfig(level=sts.log_level, filename=filename, filemode="a", format="%(asctime)s %(levelname)s %(message)s")
 logging.info("Start frontend bot.")
