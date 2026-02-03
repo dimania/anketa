@@ -94,17 +94,35 @@ class DatabaseBot:
         else:
             return None
     
-    async def db_add_questions(self, question):
+    async def db_rewrite_new_questions(self, questions):
         ''' Add question to database '''
         cur_date = datetime.now()
-
-        cursor = await self.db_modify("INSERT INTO Questions (question, date) VALUES(?, ? )",\
-                                ( question,cur_date ))
+        #clear Table Questions
+        cursor = await self.dbm.execute("DELETE FROM Questions")
+        #load new questions in the table Questions
+        for qst_one in questions:
+            cursor = await self.db_modify("INSERT INTO Questions (question, date) VALUES(?, ? )",\
+                                    ( qst_one,cur_date ))
         if cursor: 
             return str(cursor.lastrowid)
         else:
             return None
                         
+    async def db_load_questions(self):
+        ''' Add question to database '''
+        new_questions=[]
+        cursor = await self.dbm.execute("SELECT question FROM Questions")
+        rows = await cursor.fetchall()
+        logging.debug(f"Get questions rows: {rows}")
+
+        if not rows: return None
+
+        for row in rows:
+            new_questions.append(dict(row).get('question'))
+
+        logging.info(f"Get questions from db: {new_questions}")
+        return new_questions
+
     async def db_update_answer(self, id_user, name_user, nick_user, answer_user ):
         ''' Update Answer in database '''
         cur_date = datetime.now()
@@ -112,7 +130,7 @@ class DatabaseBot:
         cursor = await self.db_modify("UPDATE Films SET answer_user=?, date=? WHERE id_user = ?", \
                             (answer_user, cur_date ))
         if cursor:              
-            logging.debug(f"SQL UPDATE FILM: id={id_user} result={str(cursor.rowcount)}" )
+            logging.debug(f"SQL UPDATE ANSWER: id={id_user} result={str(cursor.rowcount)}" )
             return str(cursor.rowcount)
         else:
             return None
@@ -134,10 +152,20 @@ class DatabaseBot:
         
         return await cursor.fetchall()
 
-    async def db_list_all(self):
+    async def get_info_by_users(self):
         ''' List all records form database '''
-        cursor = await self.dbm.execute("SELECT name_user, nick_user, answer FROM Answers")
-        return  await cursor.fetchall()
+        names=[]
+        cursor = await self.dbm.execute("SELECT DISTINCT name_user, nick_user FROM Answers")
+        rows =   await cursor.fetchall()
+        logging.debug(f"Get users rows: {rows}")
+
+        if not rows: return None
+
+        for row in rows:
+            names.append(dict(row).get('name_user'))
+
+        logging.info(f"Get questions from db: {names}")
+        return names
 
     async def db_del_user_answers(self, id_user):
         '''Delete all answers for user from database '''

@@ -86,7 +86,7 @@ def get_config(config=cfg):
     global ukp_api_url
     global SHOW_DUPLICATE_FILMS
      
-    global question 
+    global all_questions 
 
     cursor = None
     connection = None

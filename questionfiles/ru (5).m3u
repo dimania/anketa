@@ -1,0 +1,69 @@
+﻿#EXTM3U deinterlace=1 m3uautoload=1 url-tvg="http://epgx.site/epg_lite.xml.gz" refresh="86400" tvg-shift=0 cache=500
+#EXTINF:-1 tvg-logo="http://s1.hostingkartinok.com/uploads/images/2021/09/6aa9cadebedaac4d2527b8ed8f1c0017.png",-plsf
+http://overlay.iptvin.fun/iptvin.ru.mp4
+#EXTINF:-1 group-title="Россия" tvg-logo="http://kusa.k-itv.ru/wp-content/uploads/2016/08/zvezda_telekanal2.jpeg" logo="https://i.ibb.co/CwH1V1s/zvezda.png" channelId="17" tvg-id="zvezda",Звезда
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R03_ZVEZDA/variant.m3u8
+#EXTINF:-1 group-title="Россия" tvg-logo="https://i.ibb.co/LkZ1wD1/Mir-HD-337x337.jpg" logo="https://i.ibb.co/D9qzXXM/dafbfe065f6f312fd8a58e833137da0d.png" channelId="138" tvg-id="mir",Мир HD
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R02_MIR/variant.m3u8
+#EXTINF:-1 group-title="Россия" tvg-logo="https://krasnovosti.ru/online_tv/img/logo_channels/ntv.jpg" logo="http://overlay.iptvin.fun/epg/PIC/%D0%9D%D0%A2%D0%92.png" channelId="6" tvg-id="ntv",НТВ
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R03_NTV/variant.m3u8
+#EXTINF:-1 group-title="Россия" tvg-logo="https://i.ibb.co/Dfjs39q/OTR-logo.jpg" logo="http://overlay.iptvin.fun/epg/PIC/%D0%9E%D0%A2%D0%A0.png" channelId="784" tvg-id="otr",ОТР
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R01_OTR/variant.m3u8
+#EXTINF:-1 group-title="Россия" tvg-logo="https://krasnovosti.ru/online_tv/img/logo_channels/pervyi-kanal.jpg" channelId="1" tvg-id="pervy",Первый канал
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R03_1TV/variant.m3u8
+#EXTINF:-1 group-title="Россия" tvg-logo="https://krasnovosti.ru/online_tv/img/logo_channels/5_channel.jpg" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_3EB_A_70_1680000_0_0_0.png" channelId="7" tvg-id="5kanal-ru",Пятый канал
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R02_5TV/variant.m3u8
+#EXTINF:-1 group-title="Россия" tvg-logo="https://i.ibb.co/7S8p4Hw/ren-logo.jpg" logo="https://i.postimg.cc/4dWqkhrk/6900abad5b72092009961dfa20d42abc.png" channelId="11" tvg-id="rentv",РЕН ТВ
+https://rt-nw-murm-htlive.cdn.ngenix.net/hls/CH_R02_RENTV/variant.m3u8
+#EXTINF:-1 group-title="Россия" tvg-logo="https://i.postimg.cc/kXvbsgCP/89e442b0f789e5cabcf47b0b9c549720.png" logo="http://www.tamby.info/tv_online/images/120/10.jpg" channelId="2" tvg-id="rossia1",Россия 1
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R04_ROSSIA1/variant.m3u8
+#EXTINF:-1 group-title="Россия" tvg-logo="https://i.postimg.cc/BQXHps5z/ab8c1792aec7a49953627fe997774bb9.png" logo="http://overlay.iptvin.fun/epg/PIC/TVCENTR.png" channelId="13" tvg-id="tvcentr",ТВЦ
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R04_TVC/variant.m3u8
+#EXTINF:-1 group-title="Информационные" tvg-logo="https://toplogos.ru/images/logo-iz.png" channelId="1104" tvg-id="izvestia",Известия
+https://rt-ct-vlad-htlive.cdn.ngenix.net/hls/CH_R01_IZVESTIYA_VLD/variant.m3u8
+#EXTINF:-1 group-title="Информационные" tvg-logo="https://i.ibb.co/5jwh2XC/18805e851492257841dea2b12048495a.png" logo="https://i.ibb.co/rt8NThT/35dafd6f5cd34b7de01c5ce1c682b785.png" channelId="153" tvg-id="moskva-24",Москва 24
+https://rt-mos-htlive.cdn.ngenix.net/hls/CH_R04_MOSKOV24/variant.m3u8
+#EXTINF:-1 group-title="Информационные" tvg-logo="https://hsto.org/getpro/moikrug/uploads/company/372/015/357/logo/medium_9af6ded0767de9d07664e509a3ffbb4a.png" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_525_D_70_1680000_0_0_0.png" channelId="9" tvg-id="rbk",РБК
+https://rt-ural-perm-htlive.cdn.ngenix.net/hls/CH_R02_OTT_RBC_PERM/variant.m3u8
+#EXTINF:-1 group-title="Информационные" tvg-logo="https://i.postimg.cc/mD9cHbjq/3e1f25f1f3ab896ac7b564623369ae42.png" logo="http://www.tamby.info/tv_online/images/120/24.jpg" channelId="10" tvg-id="rossia-24",Россия 24
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R01_ROSSIA24/variant.m3u8
+#EXTINF:-1 group-title="Детские" tvg-logo="http://only4.tv/ch/822.png" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_336_8_70_168AFFC_0_0_0.png" channelId="20" tvg-id="karusel",Карусель
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R01_KARUSEL/variant.m3u8
+#EXTINF:-1 group-title="Детские" tvg-logo="https://i.ibb.co/jZ1xyDx/Solnce-220x220.png" logo="https://i.ibb.co/Y83h9nk/Solnce-220x132-tr.png" channelId="958" tvg-id="solnce",Солнце
+https://rt-mos-htlive.cdn.ngenix.net/hls/CH_R01_OTT_DISNEY/variant.m3u8
+#EXTINF:-1 group-title="Познавательные" tvg-logo="https://i.postimg.cc/pL0nNcy0/e4c7a5238a07abf9f03cff9cced65b83.png" logo="http://www.tamby.info/tv_online/images/120/15.jpg" channelId="5" tvg-id="kultura",Россия Культура
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R02_ROSSIAK/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.ibb.co/S3fJTns/024614b06bdfdc2444ef5229fab8773c.png" logo="https://i.ibb.co/9YYnQ40/22654940aeed4b5e8654e5c870d2915a.png" channelId="14" tvg-id="2na2",2x2
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R04_2X2/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.ibb.co/S568FVP/014-domashniy-1.jpg" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_44E_B_70_1680000_0_0_0.png" channelId="21" tvg-id="domashny",Домашний
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R04_DOMASHNY/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="http://only4.tv/ch/417.png" channelId="395" tvg-id="doverie",Москва. Доверие
+https://rt-mos-htlive.cdn.ngenix.net/hls/CH_R04_DOVERIE/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="http://only4.tv/ch/1009.png" logo="https://i.ibb.co/H2XvcJX/Pyatnica-220x132-tr.png" channelId="26" tvg-id="piatnica",Пятница!
+https://zabava-htlive.cdn.ngenix.net/hls/CH_PYATNIZZA/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.postimg.cc/wM333mmq/a0c23df588be812ab898fbf1e1813d41.png" logo="https://i.postimg.cc/q7fKYjC8/f58b0704a520aadcc7f197802c32c9de.png" channelId="1571" tvg-id="sts-love",СТС Love
+https://rt-mos-htlive.cdn.ngenix.net/hls/CH_R03_OTT_STSLOVE/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.ibb.co/ySYJLPd/ctc-logo-01.jpg" logo="https://chas.tv/img/channel/sts.png" channelId="12" tvg-id="sts",СТС
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R02_STS/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.ibb.co/bWrxCmQ/034-subbota.jpg" logo="https://i.ibb.co/kJdxCgQ/Subbota-220x132-tr.png" channelId="3876" tvg-id="super" shift="3",Суббота!
+https://zabava-htlive.cdn.ngenix.net/hls/CH_SUPER/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.postimg.cc/CKdmB1wL/4527286dada5083b83bb0d03fabfa5ae.png" logo="https://i.postimg.cc/vHMh7XGK/0445f903c7bc8f136486a8cefd534321.png" channelId="8" tvg-id="tv3-ru",ТВ-3
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R01_TV3/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.postimg.cc/MpGYNFzT/d051a6c4657fdede0e501c837652be01.png" logo="http://overlay.iptvin.fun/epg/PIC/%D0%A2%D0%95%D0%9E%20%D0%A2%D0%92.png" channelId="-1" tvg-id="teotv",ТЕО-ТВ
+https://rt-mos-htlive.cdn.ngenix.net/hls/CH_R01_TEOTV/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.ibb.co/3FP1Cyw/logo-tnt-s.jpg" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_527_D_70_1680000_0_0_0.png" channelId="16" tvg-id="tnt",ТНТ
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R01_TNT/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.ibb.co/FqyWv9L/tht4.jpg" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_71C_12_70_1680000_0_0_0.png" channelId="77" tvg-id="tnt4",ТНТ4
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R01_TNT4/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.ibb.co/d4S6vpx/che-s.jpg" logo="https://i.ibb.co/p0vW9JQ/CHe-220x132-tr.png" channelId="22" tvg-id="che",Че
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R02_PERETZ/variant.m3u8
+#EXTINF:-1 group-title="Развлекательные" tvg-logo="https://i.ibb.co/C5gWgHw/027-u.jpg" logo="https://i.ibb.co/HFQRwfT/YU-220x132-tr.png" channelId="23" tvg-id="yu",Ю
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R03_U/variant.m3u8
+#EXTINF:-1 group-title="Религиозные" tvg-logo="https://www.telenettv.ru/img/channel-list/logo/mult2/2.jpg" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_3EF_A_70_1680000_0_0_0.png" channelId="244" tvg-id="spas",Спас
+https://rt-sib-chita-htlive.cdn.ngenix.net/hls/CH_R01_SPAS_ZK/variant.m3u8
+#EXTINF:-1 group-title="Россия региoнальные" tvg-logo="http://www.oreol.tv/img/logo_lentv24_s.jpg" logo="https://img15.lostpic.net/2019/08/27/77203bee1e1fdb37bd2c7bf6a2677003.png" channelId="772" tvg-id="lot-47",ЛенТВ 24
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R02_LENTVSD/variant.m3u8
+#EXTINF:-1 group-title="Россия региoнальные" tvg-logo="http://only4.tv/ch/1825.png" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_721_12_70_1680000_0_0_0.png" channelId="597" tvg-id="sankt-peterburg",Санкт-Петербург
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R02_SPBREGIONAL/variant.m3u8
+#EXTINF:-1 group-title="Спорт" tvg-logo="https://i.ibb.co/7gYK7q7/tvico-n52.png" logo="http://overlay.iptvin.fun/epg/PIC/1_0_16_3EA_A_70_1680000_0_0_0.png" channelId="4" tvg-id="match-tv",Матч! ТВ
+https://rt-nw-spb-htlive.cdn.ngenix.net/hls/CH_R04_ROSSIA2/variant.m3u8

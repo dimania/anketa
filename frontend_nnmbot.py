@@ -786,16 +786,26 @@ async def create_admin_menu(level, event):
     # send menu
     await event.respond(_("**☣ Режим Администратора:**"), parse_mode='md', buttons=keyboard)
 
-async def show_stats():
+async def show_stats(event):
     '''
     show statistics for users
     '''
     logging.debug("Call show_stats() function")
+
+    async with dbm.DatabaseBot(sts.db_name) as db:
+        names = await db.get_info_by_users()
+    strstat=f"Всего прошло опрос: {len(names)}\nСписок:\n"
+    for name in names:
+        strstat=strstat+f"{name}\n"
+
+    await event.respond(strstat)
+
+    
     return 0 
 
 async def send_answ_db():
     '''
-    send Answers DB to Admin
+    send Answers DB to Admin (load results)
     '''
     logging.debug("Call send_answ_db() function")
     return 0
@@ -805,48 +815,26 @@ async def get_qusetion_data(event_bot):
     get and load questions to DB Questions
     '''
     logging.debug("Call get_qusetion_data() function")
-    #new_questions = io.BytesIO()
-  
-    await event_bot.respond(_("Загрузите текстовый файл с вопросами\nОдин вопрос на каждой строке.\nСтарые вопросы будут удалены."))
+    
+    await event_bot.respond(_("Загрузите текстовый файл с вопросами.\nОдин вопрос на каждой строке.\nСтарые вопросы будут удалены."))
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
         #logging.debug(f"Get NewMessage event_bot: {event}")      
         if event.message.document:
             download_path = await event.message.download_media(file="questionfiles/") 
-            logging.info(f'File saved to: {download_path}')                       
-            #path = await event.message.download_media()
-            #await event.message.download_media(new_questions)
-            #new_questions.seek(0)  # set cursor to the beginning
-            string_stream = new_questions.read()
-            input_lines = []
-
-            for line in new_questions:
-                logging.info(f'Get strings from file: {line}')
-                #stripped_line = line.strip('\n')
-                #input_lines.append(stripped_line)
+            logging.info(f'File saved to: {download_path}')                                   
+            with open(download_path, 'r', encoding="utf-8") as file:
+                new_questions = [line.strip() for line in file.readlines()]
             
-            logging.info(f'Get Array from file: {input_lines}')
+            all_questions[:]=new_questions
+            logging.info(f'New all_questions: {all_questions}')
+            async with dbm.DatabaseBot(sts.db_name) as db:
+                await db.db_rewrite_new_questions(all_questions)
 
             await event.respond(_("Данные загружены в бот."))
             bot.remove_event_handler(bot_handler_f_bot)
             await create_admin_menu(0, event_bot)
-
-        #id_user = event_bot.message.peer_id.user_id
-        #logging.info(f"LOGIN USER_ID:{event_bot.message.peer_id.user_id}")
-        #user_ent = await bot.get_entity(id_user)
-        #nickname = user_ent.username
-        #first_name = user_ent.first_name
     
-                         
-                            
-    return 0
-
-async def test_anketa():
-    '''
-    run process anketa for Admin
-    '''
-    logging.debug("Call test_anketa() function")
-    return 0
 
 async def home():
     '''
@@ -859,8 +847,7 @@ async def check_user_run_anketa(id_user, event_bot, menu):
     '''
     Test user already answer or not
     and continue
-    '''
-    ret=0
+    '''    
     async with dbm.DatabaseBot(sts.db_name) as db:
         res = await db.db_exist_id_user(id_user)
     
@@ -879,14 +866,12 @@ async def check_user_run_anketa(id_user, event_bot, menu):
             #await event.delete()
             if button_data == '/no':
                 await event_bot.respond(f"До свидания.\n\n")
-                bot.remove_event_handler(callback_yn)
-                ret=0
+                bot.remove_event_handler(callback_yn)                
             elif button_data == '/yes': 
                 async with dbm.DatabaseBot(sts.db_name) as db:
                     row = await db.db_del_user_answers(id_user)
                 bot.remove_event_handler(callback_yn)
-                await run_anketa(id_user, event_bot, menu)
-                ret=1                        
+                await run_anketa(id_user, event_bot, menu)                                      
             return 0
     else:
         await run_anketa(id_user, event_bot, menu)       
@@ -910,17 +895,19 @@ async def run_anketa(id_user, event_bot, menu):
             resp_text = response.text
             logging.info(f"Get respond text: {question_id} : {resp_text}")
             async with dbm.DatabaseBot(sts.db_name) as db:     
-                row = await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
+                await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
             question_id = question_id + 1
         await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
         conv.cancel()
-        if menu: create_admin_menu(menu, event_bot)
+        if menu: await create_admin_menu(menu, event_bot)
 
     return 0 
 
 async def main_frontend():
     ''' Loop for bot connection '''
     
+    #global all_questions
+
     @bot.on(events.NewMessage())
     async def bot_handler_nm_bot(event_bot):
         logging.debug(f"Get NewMessage event_bot: {event_bot}")
@@ -931,7 +918,7 @@ async def main_frontend():
         logging.info(f"LOGIN USER_ID:{event_bot.message.peer_id.user_id}")
         user_ent = await bot.get_entity(id_user)
         nickname = user_ent.username
-        first_name = user_ent.first_name
+        #first_name = user_ent.first_name
         
         logging.debug(f"Get username for id {id_user}: {nickname}")
 
@@ -949,7 +936,7 @@ async def main_frontend():
                 # run anketa for all users who not Admin                    
                 await check_user_run_anketa(id_user, event_bot, 0)           
         elif event_bot.message.message == '/am_stats' and permissions.is_admin:
-            await show_stats()
+            await show_stats(event_bot)
             await create_admin_menu(0, event_bot)
         elif event_bot.message.message == '/am_anketa'  and permissions.is_admin:
             await check_user_run_anketa(id_user, event_bot, 1)
@@ -958,7 +945,7 @@ async def main_frontend():
             await send_answ_db()
             await create_admin_menu(0, event_bot)
         elif event_bot.message.message == '/am_questions' and permissions.is_admin:
-            await get_qusetion_data()
+            all_questions = await get_qusetion_data(event_bot)
             await create_admin_menu(0, event_bot)
         else:     
             pass
@@ -978,7 +965,7 @@ async def main_frontend():
         button_data = event_bot_choice.data.decode()
         #await event_bot.delete()
         if button_data == '/am_stats':
-            await show_stats()
+            await show_stats(event_bot_choice)
             await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_anketa':
             await check_user_run_anketa(id_user, event_bot_choice, 1)
@@ -1004,6 +991,10 @@ async def main():
     async with dbm.DatabaseBot(sts.db_name) as db:
         logging.debug('Create db if not exist.')
         await db.db_create()
+        new_questions = await db.db_load_questions()
+
+    if new_questions:
+        all_questions[:] = new_questions
 
     # Get data for admin user for check and add to db (initialization)
     #admin_ent = bot.loop.run_until_complete(bot.get_entity(sts.admin_name))
@@ -1023,7 +1014,8 @@ async def main():
 sts.get_config()
 # Enable logging
 
-all_questions = ["tesxt_q1","text_q2","text_q3","text_q4","text_q5"]
+all_questions = ["text_q1","text_q2","text_q3","text_q4","text_q5"]
+
 filename=os.path.join(os.path.dirname(sts.logfile),'frontend_'+os.path.basename(sts.logfile))
 logging.basicConfig(level=sts.log_level, filename=filename, filemode="a", format="%(asctime)s %(levelname)s %(message)s")
 logging.info("Start frontend bot.")
