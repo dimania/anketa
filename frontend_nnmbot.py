@@ -821,7 +821,45 @@ async def home():
     logging.debug("Call home stub function")
     return 0
 
-async def run_anketa(id_user, event_bot):
+async def check_user_run_anketa(id_user, event_bot, menu):
+    '''
+    Test user already answer or not
+    and continue
+    '''
+    ret=0
+    async with dbm.DatabaseBot(sts.db_name) as db:
+        res = await db.db_exist_id_user(id_user)
+    
+    logging.info(f"Exist_id_user: {res}")
+
+    # if user already answer     
+    if res:
+       #await event_bot.respond(f"Вы уже отвечали на вопросы.\n Желаете пройти опрос снова?\n Предыдущие ответы будут потяряны.\n")
+       keyboard = [ Button.inline(_("Да"), b"/yes"),Button.inline(_("Нет"), b"/no") ]
+       await event_bot.respond(_("Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\nПредыдущие ответы будут потяряны.\n"), parse_mode='md', buttons=keyboard)
+      
+       @bot.on(events.CallbackQuery())
+       async def callback_yn(event):            
+            button_data = event.data.decode()
+            logging.info(f"Callback yes/no: {button_data}")
+            #await event.delete()
+            if button_data == '/no':
+                await event_bot.respond(f"До свидания.\n\n")
+                bot.remove_event_handler(callback_yn)
+                ret=0
+            elif button_data == '/yes': 
+                async with dbm.DatabaseBot(sts.db_name) as db:
+                    row = await db.db_del_user_answers(id_user)
+                bot.remove_event_handler(callback_yn)
+                await run_anketa(id_user, event_bot, menu)
+                ret=1                        
+            return 0
+    else:
+        await run_anketa(id_user, event_bot, menu)       
+        return 2
+
+
+async def run_anketa(id_user, event_bot, menu):
     '''
     run main process for anketting
     '''
@@ -843,6 +881,8 @@ async def run_anketa(id_user, event_bot):
             question_id = question_id + 1
         await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
         conv.cancel()
+        if menu: create_admin_menu(menu, event_bot)
+
     return 0 
 
 async def main_frontend():
@@ -874,12 +914,12 @@ async def main_frontend():
                 await create_admin_menu(0, event_bot)
             else:
                 # run anketa for all users who not Admin                    
-                await run_anketa(id_user, event_bot)           
+                await check_user_run_anketa(id_user, event_bot, 0)           
         elif event_bot.message.message == '/am_stats' and permissions.is_admin:
             await show_stats()
             await create_admin_menu(0, event_bot)
         elif event_bot.message.message == '/am_anketa'  and permissions.is_admin:
-            await run_anketa(id_user, event_bot)
+            await check_user_run_anketa(id_user, event_bot, 1)
             await create_admin_menu(0, event_bot)
         elif event_bot.message.message == '/am_answers'  and permissions.is_admin:
             await send_answ_db()
@@ -890,7 +930,7 @@ async def main_frontend():
         else:     
             pass
 
-    # Run hundler for button callback
+    # Run hundler for button callback - menu for Admin
     @bot.on(events.CallbackQuery())
     async def callback_bot_choice(event_bot_choice):
         id_user = event_bot_choice.query.user_id
@@ -908,8 +948,8 @@ async def main_frontend():
             await show_stats()
             await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_anketa':
-            await run_anketa(id_user, event_bot_choice)
-            await create_admin_menu(0, event_bot_choice)
+            await check_user_run_anketa(id_user, event_bot_choice, 1)
+            #await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_answers':
             await send_answ_db()
             await create_admin_menu(0, event_bot_choice)

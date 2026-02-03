@@ -139,4 +139,10 @@ class DatabaseBot:
         cursor = await self.dbm.execute("SELECT name_user, nick_user, answer FROM Answers")
         return  await cursor.fetchall()
 
+    async def db_del_user_answers(self, id_user):
+        '''Delete all answers for user from database '''
+        cursor = await self.dbm.execute("DELETE FROM Answers WHERE id_user = ?", (id_user,))
+        await self.dbm.commit()
+        return await cursor.fetchall()
+    
  
