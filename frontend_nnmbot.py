@@ -800,11 +800,45 @@ async def send_answ_db():
     logging.debug("Call send_answ_db() function")
     return 0
 
-async def get_qusetion_data():
+async def get_qusetion_data(event_bot):
     '''
     get and load questions to DB Questions
     '''
     logging.debug("Call get_qusetion_data() function")
+    #new_questions = io.BytesIO()
+  
+    await event_bot.respond(_("Загрузите текстовый файл с вопросами\nОдин вопрос на каждой строке.\nСтарые вопросы будут удалены."))
+    @bot.on(events.NewMessage())
+    async def bot_handler_f_bot(event):
+        #logging.debug(f"Get NewMessage event_bot: {event}")      
+        if event.message.document:
+            download_path = await event.message.download_media(file="questionfiles/") 
+            logging.info(f'File saved to: {download_path}')                       
+            #path = await event.message.download_media()
+            #await event.message.download_media(new_questions)
+            #new_questions.seek(0)  # set cursor to the beginning
+            string_stream = new_questions.read()
+            input_lines = []
+
+            for line in new_questions:
+                logging.info(f'Get strings from file: {line}')
+                #stripped_line = line.strip('\n')
+                #input_lines.append(stripped_line)
+            
+            logging.info(f'Get Array from file: {input_lines}')
+
+            await event.respond(_("Данные загружены в бот."))
+            bot.remove_event_handler(bot_handler_f_bot)
+            await create_admin_menu(0, event_bot)
+
+        #id_user = event_bot.message.peer_id.user_id
+        #logging.info(f"LOGIN USER_ID:{event_bot.message.peer_id.user_id}")
+        #user_ent = await bot.get_entity(id_user)
+        #nickname = user_ent.username
+        #first_name = user_ent.first_name
+    
+                         
+                            
     return 0
 
 async def test_anketa():
@@ -857,7 +891,6 @@ async def check_user_run_anketa(id_user, event_bot, menu):
     else:
         await run_anketa(id_user, event_bot, menu)       
         return 2
-
 
 async def run_anketa(id_user, event_bot, menu):
     '''
@@ -954,8 +987,8 @@ async def main_frontend():
             await send_answ_db()
             await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_questions':
-            await get_qusetion_data()
-            await create_admin_menu(0, event_bot_choice)
+            await get_qusetion_data(event_bot_choice)
+            #await create_admin_menu(0, event_bot_choice)
         else:     
             pass
 
@@ -989,7 +1022,7 @@ async def main():
 
 sts.get_config()
 # Enable logging
-#question = {"q1":"tesxt_q1","q2":"text_q2","q3":"text_q3","q4":"text_q4","q5":"text_q5"}
+
 all_questions = ["tesxt_q1","text_q2","text_q3","text_q4","text_q5"]
 filename=os.path.join(os.path.dirname(sts.logfile),'frontend_'+os.path.basename(sts.logfile))
 logging.basicConfig(level=sts.log_level, filename=filename, filemode="a", format="%(asctime)s %(levelname)s %(message)s")
