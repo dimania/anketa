@@ -820,27 +820,34 @@ async def gen_excel():
     Generate excel table
     '''
     data={}
-    d1=[]
-    d2=[]
-    d3=[]
-    d4=[]
-    d5=[]
+    data['name_user']=[]
+    data['nick_user']=[]
+    data['question_id']=[]
+    data['answer_user']=[]
+    data['date']=[]
+    data['time']=[]
+
+    
     async with dbm.DatabaseBot(sts.db_name) as db:
         rows = await db.get_info_for_report()
+
     # Get name_user, nick_user, question_id, answer_user, date
     for row in rows:
-        d1.append(dict(row).get('name_user'))
-        d2.append(dict(row).get('nick_user'))
-        d3.append(dict(row).get('question_id'))
-        d4.append(dict(row).get('answer_user'))
-        d5.append(dict(row).get('date'))
+        data['name_user'].append(dict(row).get('name_user'))       
+        data['nick_user'].append(dict(row).get('nick_user'))
+        index=int(dict(row).get('question_id'))
+        data['question_id'].append(all_questions[index-1])
+        data['answer_user'].append(dict(row).get('answer_user'))
+        #2024-03-03 11:46:05.488155
+        dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
+        date = dt.strftime('%d.%m.%y')
+        time = dt.strftime('%H:%M')
+        data['date'].append(date)
+        data['time'].append(time)
 
 
-    data['name_user']=d1
-    data['nick_user']=d2
-    data['question_id']=d3
-    data['answer_user']=d4
-    data['date']=d5
+
+    
 
     #print(data)
     #return
