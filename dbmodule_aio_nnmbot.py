@@ -32,7 +32,7 @@ class DatabaseBot:
     async def db_create( self ):
         ''' Creta DB if not exist '''
 
-        # Create basic table Films
+        # Create basic table Questions
         await self.dbm.execute('''PRAGMA journal_mode=WAL''')  # Активация WAL
 
         await self.dbm.execute('''
@@ -42,7 +42,7 @@ class DatabaseBot:
         date TEXT
         )
         ''')
-        # Ctreate table Users
+        # Ctreate table Answers
         await self.dbm.execute('''
         CREATE TABLE IF NOT EXISTS Answers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

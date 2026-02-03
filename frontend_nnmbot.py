@@ -754,11 +754,95 @@ async def add_new_user(event):
         await bot.send_message(user_ent,_("New user **")+name_user+_("** request approve."),parse_mode='md')
     return res
 
+
+#------------------------------Anketa here-----------------------------------
+
+
+async def create_admin_menu(level, event):
+    ''' Create Admin menu '''
+    logging.debug("Create menu buttons")
+    keyboard = [
+        [
+            Button.inline(_("Показать статистику"), b"/am_stats")
+        ],
+        [
+            Button.inline(_("Пройти анкетирование"), b"/am_anketa")
+        ],
+        [
+            Button.inline(_("Получить результаты"), b"/am_answers")
+        ],
+        [
+            Button.inline(_("Загрузить вопросы"), b"/am_questions")
+        ]
+    ]
+
+    #if level == sts.MENU_SUPERADMIN:
+    #   # Add items for SuperUser
+    #   keyboard.append([Button.inline(_("List All Films in DB"), b"/bm_dblist")])
+    #   keyboard.append([Button.inline(_("Go to control users menu"), b"/bm_cum")])
+    
+    #clear old message
+    await event.delete()
+    # send menu
+    await event.respond(_("**☣ Режим Администратора:**"), parse_mode='md', buttons=keyboard)
+
+async def show_stats():
+    '''
+    show statistics for users
+    '''
+    logging.debug("Call show_stats() function")
+    return 0 
+
+async def send_answ_db():
+    '''
+    send Answers DB to Admin
+    '''
+    logging.debug("Call send_answ_db() function")
+    return 0
+
+async def get_qusetion_data():
+    '''
+    get and load questions to DB Questions
+    '''
+    logging.debug("Call get_qusetion_data() function")
+    return 0
+
+async def test_anketa():
+    '''
+    run process anketa for Admin
+    '''
+    logging.debug("Call test_anketa() function")
+    return 0
+
 async def home():
     '''
     stub function
     '''
     logging.debug("Call home stub function")
+    return 0
+
+async def run_anketa(id_user, event_bot):
+    '''
+    run main process for anketting
+    '''
+    user_ent = await bot.get_entity(id_user)
+    nickname = user_ent.username
+    first_name = user_ent.first_name
+    question_id=0
+    
+    await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n\n")
+
+    async with bot.conversation(id_user) as conv:
+        for cur_question  in all_questions: 
+            await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
+            response = await conv.get_response()
+            resp_text = response.text
+            logging.info(f"Get respond text: {question_id} : {resp_text}")
+            async with dbm.DatabaseBot(sts.db_name) as db:     
+                row = await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
+            question_id = question_id + 1
+        await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
+        conv.cancel()
     return 0 
 
 async def main_frontend():
@@ -770,7 +854,7 @@ async def main_frontend():
         menu_level = 0
       
         channel = PeerChannel(Channel_my_id)
-        id_user = user = event_bot.message.peer_id.user_id
+        id_user = event_bot.message.peer_id.user_id
         logging.info(f"LOGIN USER_ID:{event_bot.message.peer_id.user_id}")
         user_ent = await bot.get_entity(id_user)
         nickname = user_ent.username
@@ -778,33 +862,63 @@ async def main_frontend():
         
         logging.debug(f"Get username for id {id_user}: {nickname}")
 
-
         try:
             permissions = await bot.get_permissions(PeerChannel(Channel_my_id), event_bot.message.peer_id.user_id)
-            logging.debug(f"Get permissions = {permissions}  for channe={channel} user={user}")
+            logging.debug(f"Get permissions = {permissions}  for channe={channel} user={id_user}")
         except Exception as error:
-            logging.error(f"Can not get permissions for channel={channel} user={user} Error:{error}). \nPossibly user not join to group but send request for Control")  
-
-        if permissions.is_admin:
-            #await event_bot.respond("You are admin channel!")
-            pass
-        question_id=0 
+            logging.error(f"Can not get permissions for channel={channel} user={id_user} Error:{error}). \nPossibly user not join to group but send request for Control")  
+                   
         if event_bot.message.message == '/start':
-            await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n\n")
-            async with bot.conversation(id_user) as conv:
-                for cur_question  in all_questions: 
-                    await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
-                    response = await conv.get_response()
-                    resp_text = response.text
-                    logging.info(f"Get respond text: {question_id} : {resp_text}")
-                    async with dbm.DatabaseBot(sts.db_name) as db:     
-                       row = await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
-                    question_id = question_id + 1
-                await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
-                conv.cancel()
-        else: 
+            if permissions.is_admin:
+                #await event_bot.respond("You are admin channel!")
+                await create_admin_menu(0, event_bot)
+            else:
+                # run anketa for all users who not Admin                    
+                await run_anketa(id_user, event_bot)           
+        elif event_bot.message.message == '/am_stats' and permissions.is_admin:
+            await show_stats()
+            await create_admin_menu(0, event_bot)
+        elif event_bot.message.message == '/am_anketa'  and permissions.is_admin:
+            await run_anketa(id_user, event_bot)
+            await create_admin_menu(0, event_bot)
+        elif event_bot.message.message == '/am_answers'  and permissions.is_admin:
+            await send_answ_db()
+            await create_admin_menu(0, event_bot)
+        elif event_bot.message.message == '/am_questions' and permissions.is_admin:
+            await get_qusetion_data()
+            await create_admin_menu(0, event_bot)
+        else:     
             pass
-                
+
+    # Run hundler for button callback
+    @bot.on(events.CallbackQuery())
+    async def callback_bot_choice(event_bot_choice):
+        id_user = event_bot_choice.query.user_id
+        logging.info(f"Get callback event for user[{id_user}] {event_bot_choice}")  
+        try:
+            permissions = await bot.get_permissions(PeerChannel(Channel_my_id), id_user)
+            logging.debug(f"Get permissions = {permissions}  for  user={id_user}")
+        except Exception as error:
+            logging.error(f"Can not get permissions for  user={id_user} Error:{error}). \nPossibly user not join to group but send request for Control")  
+        if not permissions.is_admin: return 0
+
+        button_data = event_bot_choice.data.decode()
+        #await event_bot.delete()
+        if button_data == '/am_stats':
+            await show_stats()
+            await create_admin_menu(0, event_bot_choice)
+        elif button_data == '/am_anketa':
+            await run_anketa(id_user, event_bot_choice)
+            await create_admin_menu(0, event_bot_choice)
+        elif button_data == '/am_answers':
+            await send_answ_db()
+            await create_admin_menu(0, event_bot_choice)
+        elif button_data == '/am_questions':
+            await get_qusetion_data()
+            await create_admin_menu(0, event_bot_choice)
+        else:     
+            pass
+
 
     return bot
 
