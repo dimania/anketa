@@ -22,6 +22,8 @@ from telethon import errors
 from telethon.events import StopPropagation
 from telethon.sessions import StringSession
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import pandas as pd
+
 
 #from requests.packages.urllib3.util.retry import Retry
 # --------------------------------
@@ -807,8 +809,81 @@ async def send_answ_db():
     '''
     send Answers DB to Admin (load results)
     '''
+    await gen_excel()
+
+    
     logging.debug("Call send_answ_db() function")
     return 0
+
+async def gen_excel():
+    '''
+    Generate excel table
+    '''
+    data={}
+    d1=[]
+    d2=[]
+    d3=[]
+    d4=[]
+    d5=[]
+    async with dbm.DatabaseBot(sts.db_name) as db:
+        rows = await db.get_info_for_report()
+    # Get name_user, nick_user, question_id, answer_user, date
+    for row in rows:
+        d1.append(dict(row).get('name_user'))
+        d2.append(dict(row).get('nick_user'))
+        d3.append(dict(row).get('question_id'))
+        d4.append(dict(row).get('answer_user'))
+        d5.append(dict(row).get('date'))
+
+
+    data['name_user']=d1
+    data['nick_user']=d2
+    data['question_id']=d3
+    data['answer_user']=d4
+    data['date']=d5
+
+    #print(data)
+    #return
+
+    # Create a Pandas dataframe from some data.
+    #df = pd.DataFrame(
+    #   {
+    #       "Country": ["China", "India", "United States", "Indonesia"],
+    #       "Population": [1404338840, 1366938189, 330267887, 269603400],
+    #       "Rank": [1, 2, 3, 4],
+    #    }
+    #)
+
+    df = pd.DataFrame(data)
+
+    # Order the columns if necessary.
+    #df = df[["Rank", "Country", "Population"]]
+
+    # Create a Pandas Excel writer using XlsxWriter as the engine.
+    writer = pd.ExcelWriter("pandas_table.xlsx", engine="xlsxwriter")
+
+    # Write the dataframe data to XlsxWriter. Turn off the default header and
+    # index and skip one row to allow us to insert a user defined header.
+    df.to_excel(writer, sheet_name="Sheet1", startrow=1, header=False, index=False)
+
+    # Get the xlsxwriter workbook and worksheet objects.
+    workbook = writer.book
+    worksheet = writer.sheets["Sheet1"]
+
+    # Get the dimensions of the dataframe.
+    (max_row, max_col) = df.shape
+
+    # Create a list of column headers, to use in add_table().
+    column_settings = [{"header": column} for column in df.columns]
+
+    # Add the Excel table structure. Pandas will add the data.
+    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
+
+    # Make the columns wider for clarity.
+    worksheet.set_column(0, max_col - 1, 12)
+
+    # Close the Pandas Excel writer and output the Excel file.
+    writer.close()
 
 async def get_qusetion_data(event_bot):
     '''

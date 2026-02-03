@@ -167,10 +167,30 @@ class DatabaseBot:
         logging.info(f"Get questions from db: {names}")
         return names
 
+    async def get_info_for_report(self):
+        ''' List all records form database '''
+        #names=[]
+        cursor = await self.dbm.execute("SELECT name_user, nick_user, question_id, answer_user, date FROM Answers")
+        rows =   await cursor.fetchall()
+        #logging.debug(f"Get data for reports: {rows}")
+
+        if rows: 
+            return rows
+        else:
+            return None
+
+        #for row in rows:
+        #    names.append(dict(row).get('name_user'))
+        #
+        #logging.info(f"Get questions from db: {names}")
+        #return names
+
     async def db_del_user_answers(self, id_user):
         '''Delete all answers for user from database '''
         cursor = await self.dbm.execute("DELETE FROM Answers WHERE id_user = ?", (id_user,))
         await self.dbm.commit()
         return await cursor.fetchall()
+
+
     
  
