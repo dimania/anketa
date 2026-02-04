@@ -760,7 +760,7 @@ async def add_new_user(event):
 #------------------------------Anketa here-----------------------------------
 
 
-def is_utf8_text_file(filename):
+async def is_utf8_text_file(filename):
     """Checks if a file can be entirely decoded as UTF-8 text."""
     try:
         with open(filename, 'r', encoding='utf-8') as file:
@@ -775,7 +775,7 @@ def is_utf8_text_file(filename):
         logging.warning(f"An error occurred: {e}")
         return False
 
-def get_excel_text(filename, sheet_name=0):
+async def get_excel_text(filename, sheet_name=0):
     """
     Reads data from an Excel file into a pandas DataFrame.
     sheet_name can be an integer (0 for the first sheet) or a string ('Sheet1').
@@ -788,7 +788,7 @@ def get_excel_text(filename, sheet_name=0):
         logging.warning(f"Error reading Excel file: {e}")
         return False
 
-def get_word_text(filename):
+async def get_word_text(filename):
     """
     Extracts all text from a .docx file.
     """
@@ -800,7 +800,7 @@ def get_word_text(filename):
     # Join paragraphs with a newline character
     return '\n'.join(full_text)
 
-def get_oldword_text(filename): #FIXME Its dont work
+async def get_oldword_text(filename): #FIXME Its dont work
     """
     Extracts all text from old a .doc file.
     """
@@ -812,7 +812,7 @@ def get_oldword_text(filename): #FIXME Its dont work
     pass
     return None
     
-def get_txt_text(filename):
+async def get_txt_text(filename):
     '''
     Get data fron text file 
     '''
@@ -822,7 +822,7 @@ def get_txt_text(filename):
     
     return text
 
-def get_new_questions(filename):
+async def get_new_questions(filename):
     '''
     Docstring для get_new_questions
     Get new questions from file txt,docx,xls,xlsx and return list
@@ -833,24 +833,24 @@ def get_new_questions(filename):
     
     kind = filetype.guess(filename)
     
-    logging.debug(f'File extension: {kind.extension}')
-    logging.debug(f'File MIME type: {kind.mime}')
+    #logging.debug(f'File extension: {kind.extension}')
+    #logging.debug(f'File MIME type: {kind.mime}')
 
-    if ext == '.txt' and is_utf8_text_file(filename):
-        text_content = get_txt_text(filename)
+    if ext == '.txt' and await is_utf8_text_file(filename):
+        text_content = await get_txt_text(filename)
         logging.debug(f'Txt content is:{text_content}')
     elif kind is None:
         logging.debug(f'Cannot guess file type filename: {filename}!')
         return 1
     elif kind.extension == 'docx': 
-        text_content = get_word_text(filename)
+        text_content = await get_word_text(filename)
         logging.debug(f'Docx content is:{text_content}')
     elif kind.extension == 'doc':
         return False
         #text_content = get_oldword_text(filename)
         #logging.debug(f'Doc content is:{text_content}')
     elif kind.extension == 'xlsx' or kind.extension == 'xls':
-        text_content = get_excel_text(filename)
+        text_content = await get_excel_text(filename)
         logging.debug(f'Xlsx or xls content is:{text_content}')
 
     qlist = [item.strip() for item in text_content.split('\n')]
@@ -902,17 +902,22 @@ async def show_stats(event):
     
     return 0 
 
-async def send_answ_db():
+async def send_answ_db(event):
     '''
     send Answers DB to Admin (load results)
     '''
-    await gen_excel()
-
-    
     logging.debug("Call send_answ_db() function")
+
+    dt = datetime.now().strftime('%d%m%Y_%H%M%S')
+    
+    filename = f"reports/report_{dt}.xlsx"
+    logging.debug(f"Gen filename: {filename}")
+    await gen_excel(filename)
+    message="Ваш отчет"
+    await bot.send_file( event.query.user_id, filename, caption=message, parse_mode="html" ) 
     return 0
 
-async def gen_excel():
+async def gen_excel(filename):
     '''
     Generate excel table
     '''
@@ -942,37 +947,22 @@ async def gen_excel():
         data['date'].append(date)
         data['time'].append(time)
 
-
-
-    
-
-    #print(data)
-    #return
-
-    # Create a Pandas dataframe from some data.
-    #df = pd.DataFrame(
-    #   {
-    #       "Country": ["China", "India", "United States", "Indonesia"],
-    #       "Population": [1404338840, 1366938189, 330267887, 269603400],
-    #       "Rank": [1, 2, 3, 4],
-    #    }
-    #)
-
     df = pd.DataFrame(data)
 
     # Order the columns if necessary.
     #df = df[["Rank", "Country", "Population"]]
 
     # Create a Pandas Excel writer using XlsxWriter as the engine.
-    writer = pd.ExcelWriter("pandas_table.xlsx", engine="xlsxwriter")
+    writer = pd.ExcelWriter(filename, engine="xlsxwriter")
 
     # Write the dataframe data to XlsxWriter. Turn off the default header and
     # index and skip one row to allow us to insert a user defined header.
-    df.to_excel(writer, sheet_name="Sheet1", startrow=1, header=False, index=False)
+    df.to_excel(writer, sheet_name="Общий", startrow=1, header=False, index=False)
 
     # Get the xlsxwriter workbook and worksheet objects.
     workbook = writer.book
-    worksheet = writer.sheets["Sheet1"]
+    worksheet = writer.sheets["Общий"]
+    #worksheet = writer.sheets["Sheet1"]
 
     # Get the dimensions of the dataframe.
     (max_row, max_col) = df.shape
@@ -988,14 +978,24 @@ async def gen_excel():
 
     # Close the Pandas Excel writer and output the Excel file.
     writer.close()
-
+    
+    return True
+    
 async def get_qusetion_data(event_bot):
     '''
     get and load questions to DB Questions
     '''
     logging.debug("Call get_qusetion_data() function")
     
-    await event_bot.respond(_("Загрузите текстовый файл с вопросами.\nОдин вопрос на каждой строке.\nСтарые вопросы будут удалены."))
+    await event_bot.respond(_(\
+    "🟢Загрузите файл с вопросами.\n" \
+    "Поддержиаются следующие типы файлов:\n" \
+    "Текстовый файл (txt) по одному вопросу на строке\n" \
+    "MS Word файл (docx) по одному вопросу на строке\n" \
+    "MS Excel файл (xls,xlsx) по одному вопросу в ячейке в первой колонке\n" \
+    "⚠️Старый формат MS word (doc) не поддерживается\n" \
+    "❗Текущие вопросы будут удалены.❗"))
+
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
         #logging.debug(f"Get NewMessage event_bot: {event}")      
@@ -1004,9 +1004,11 @@ async def get_qusetion_data(event_bot):
             logging.info(f'File saved to: {download_path}')                                   
             #with open(download_path, 'r', encoding="utf-8") as file:
             #    new_questions = [line.strip() for line in file.readlines()]
-            new_questions = get_new_questions(download_path)
+            new_questions = await get_new_questions(download_path)
             if not new_questions:
-                await event_bot.respond(_("Данный формат файла не поддерживается!"))
+                await event_bot.respond(_("⚠️Данный формат файла не поддерживается!"))
+                bot.remove_event_handler(bot_handler_f_bot)
+                await create_admin_menu(0, event_bot)
                 return False   
             all_questions[:]=new_questions
             logging.info(f'New all_questions: {all_questions}')
@@ -1017,7 +1019,6 @@ async def get_qusetion_data(event_bot):
             bot.remove_event_handler(bot_handler_f_bot)
             await create_admin_menu(0, event_bot)
     
-
 async def home():
     '''
     stub function
@@ -1124,7 +1125,7 @@ async def main_frontend():
             await check_user_run_anketa(id_user, event_bot, 1)
             await create_admin_menu(0, event_bot)
         elif event_bot.message.message == '/am_answers'  and permissions.is_admin:
-            await send_answ_db()
+            await send_answ_db(event_bot)
             await create_admin_menu(0, event_bot)
         elif event_bot.message.message == '/am_questions' and permissions.is_admin:
             all_questions = await get_qusetion_data(event_bot)
@@ -1153,7 +1154,7 @@ async def main_frontend():
             await check_user_run_anketa(id_user, event_bot_choice, 1)
             #await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_answers':
-            await send_answ_db()
+            await send_answ_db(event_bot_choice)
             await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_questions':
             await get_qusetion_data(event_bot_choice)
