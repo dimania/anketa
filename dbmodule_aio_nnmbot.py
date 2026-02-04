@@ -95,7 +95,7 @@ class DatabaseBot:
             return None
     
     async def db_rewrite_new_questions(self, questions):
-        ''' Add question to database '''
+        ''' Rewrite question on database from Array '''
         cur_date = datetime.now()
         #clear Table Questions
         cursor = await self.dbm.execute("DELETE FROM Questions")
@@ -109,7 +109,7 @@ class DatabaseBot:
             return None
                         
     async def db_load_questions(self):
-        ''' Add question to database '''
+        ''' Load all question in Array '''
         new_questions=[]
         cursor = await self.dbm.execute("SELECT question FROM Questions")
         rows = await cursor.fetchall()
@@ -123,7 +123,7 @@ class DatabaseBot:
         logging.info(f"Get questions from db: {new_questions}")
         return new_questions
 
-    async def db_update_answer(self, id_user, name_user, nick_user, answer_user ):
+    async def db_update_answer(self, id_user, name_user, nick_user, answer_user ): #NOTUSE
         ''' Update Answer in database '''
         cur_date = datetime.now()
       
@@ -140,20 +140,20 @@ class DatabaseBot:
         cursor = await self.dbm.execute("SELECT id FROM Answers WHERE id_user = ?", (id_user,))
         return await cursor.fetchone()
 
-    async def get_last_answer_id(self, id_user):
+    async def get_last_answer_id(self, id_user):#NOTUSE
         ''' Test exist user in database '''
         #SELECT column_name FROM table_name ORDER BY id_column DESC LIMIT 1;
         cursor = await self.dbm.execute("SELECT answer_id FROM Answers WHERE id_user = ? ORDER BY id DESC LIMIT 1", (id_user,))
         return await cursor.fetchone()
         
-    async def db_info(self, id_user):
+    async def db_info(self, id_user): #NOTUSE
         ''' Get Info database: all records '''        
         cursor = await self.dbm.execute("SELECT COUNT(*) FROM Answers" )
         
         return await cursor.fetchall()
 
     async def get_info_by_users(self):
-        ''' List all records form database '''
+        ''' List all users who anser for stats'''
         names=[]
         cursor = await self.dbm.execute("SELECT DISTINCT name_user, nick_user FROM Answers")
         rows =   await cursor.fetchall()
@@ -168,8 +168,8 @@ class DatabaseBot:
         return names
 
     async def get_info_for_report(self):
-        ''' List all records form database '''
-        #names=[]
+        ''' List all records form database for report'''
+        
         cursor = await self.dbm.execute("SELECT name_user, nick_user, question_id, answer_user, date FROM Answers")
         rows =   await cursor.fetchall()
         #logging.debug(f"Get data for reports: {rows}")
@@ -179,18 +179,8 @@ class DatabaseBot:
         else:
             return None
 
-        #for row in rows:
-        #    names.append(dict(row).get('name_user'))
-        #
-        #logging.info(f"Get questions from db: {names}")
-        #return names
-
     async def db_del_user_answers(self, id_user):
         '''Delete all answers for user from database '''
         cursor = await self.dbm.execute("DELETE FROM Answers WHERE id_user = ?", (id_user,))
         await self.dbm.commit()
         return await cursor.fetchall()
-
-
-    
- 
