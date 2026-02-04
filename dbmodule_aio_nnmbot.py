@@ -99,6 +99,7 @@ class DatabaseBot:
         cur_date = datetime.now()
         #clear Table Questions
         cursor = await self.dbm.execute("DELETE FROM Questions")
+        cursor = await self.dbm.execute("DELETE FROM Answers")
         #load new questions in the table Questions
         for qst_one in questions:
             cursor = await self.db_modify("INSERT INTO Questions (question, date) VALUES(?, ? )",\

@@ -40,7 +40,6 @@ def get_config(config=cfg):
     global proxies
     global logfile
     global use_proxy
-    global ICU_extension_lib
     global log_level
     global Lang
     global cursor
@@ -82,10 +81,6 @@ def get_config(config=cfg):
 
         if not ses_bot_str: session_bot = config.session_bot 
     
-        if 'ICU_extension_lib' in vars(config):
-            ICU_extension_lib = config.ICU_extension_lib
-        else: ICU_extension_lib = None
-
         if use_proxy:
             proxies = config.proxies
         else:

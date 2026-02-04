@@ -1,0 +1,38 @@
+#version: "2"
+name: anketa
+services:
+  anketa_fe:
+    image: dimania/anketa
+    command: python frontend_nnmbot.py
+        
+    volumes:
+          # mount config file
+        - type: bind
+          source: /home/dima/opt/anketa/etc/myconfig.py
+          target: /home/nnmbot/myconfig.py
+          read_only: true
+          
+          # mount dir for database file
+          # settings path file database must be changed in config file!
+        - type: bind
+          source: /home/dima/opt/anketa/data
+          target: /home/nnmbot/data
+        
+          # mount dir for logs
+          # settings path log file must be changed in config file!
+        - type: bind
+          source: /home/dima/opt/anketa/logs
+          target: /home/nnmbot/logs
+
+          # mount dir for session telegram file if need
+          # settings path log file must be changed in config file!
+        - type: bind
+          source: /home/dima/opt/anketa/session
+          target: /home/nnmbot/session
+          
+    # Critical secret keys can set over env vars 
+    env_file:
+        - path: ./config_over_env.env
+          format: raw
+
+   

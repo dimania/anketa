@@ -62,10 +62,6 @@ logfile = 'nnmbot.log'
 #Use proxy or d'not
 use_proxy = 0 # if use proxy set to 1
 
-#ICU extension for case independet search  in DB if Not when set in None
-#defaul search in current dir
-ICU_extension_lib = "libsqliteicu.so"
-
 #Set logging level for bot
 #Possible value: NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL  
 log_level='INFO'
