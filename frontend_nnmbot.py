@@ -23,8 +23,8 @@ from telethon.events import StopPropagation
 from telethon.sessions import StringSession
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import pandas as pd
-
-
+import filetype
+import docx
 #from requests.packages.urllib3.util.retry import Retry
 # --------------------------------
 import settings as sts
@@ -760,6 +760,103 @@ async def add_new_user(event):
 #------------------------------Anketa here-----------------------------------
 
 
+def is_utf8_text_file(filename):
+    """Checks if a file can be entirely decoded as UTF-8 text."""
+    try:
+        with open(filename, 'r', encoding='utf-8') as file:
+            file.read()
+        return True
+    except UnicodeDecodeError:
+        # This exception is raised if the file contains byte sequences 
+        # that are invalid for UTF-8 encoding.
+        return False
+    except Exception as e:
+        # Handle other potential exceptions (e.g., file not found, permission errors)
+        logging.warning(f"An error occurred: {e}")
+        return False
+
+def get_excel_text(filename, sheet_name=0):
+    """
+    Reads data from an Excel file into a pandas DataFrame.
+    sheet_name can be an integer (0 for the first sheet) or a string ('Sheet1').
+    """
+    try:
+        df = pd.read_excel(filename, sheet_name=sheet_name, header=None )
+        # Convert the DataFrame to a string representation (e.g., for printing or writing to a text file)
+        return df.to_string(index=False,header=False,justify='left')
+    except Exception as e:
+        logging.warning(f"Error reading Excel file: {e}")
+        return False
+
+def get_word_text(filename):
+    """
+    Extracts all text from a .docx file.
+    """
+    document = docx.Document(filename)
+    full_text = []
+    for paragraph in document.paragraphs:
+        full_text.append(paragraph.text)
+
+    # Join paragraphs with a newline character
+    return '\n'.join(full_text)
+
+def get_oldword_text(filename): #FIXME Its dont work
+    """
+    Extracts all text from old a .doc file.
+    """
+    # OLD word file - .doc
+       # Convert the document and extract text
+       
+    #text = docx2txt.process(filename) 
+    #return text
+    pass
+    return None
+    
+def get_txt_text(filename):
+    '''
+    Get data fron text file 
+    '''
+    with open(filename, 'r', encoding="utf-8") as file:
+                #text = text + [for line in file.readlines()]
+                text=file.read()
+    
+    return text
+
+def get_new_questions(filename):
+    '''
+    Docstring для get_new_questions
+    Get new questions from file txt,docx,xls,xlsx and return list
+    :param filename: file with questions
+    '''
+        
+    root,ext = os.path.splitext(filename)
+    
+    kind = filetype.guess(filename)
+    
+    logging.debug(f'File extension: {kind.extension}')
+    logging.debug(f'File MIME type: {kind.mime}')
+
+    if ext == '.txt' and is_utf8_text_file(filename):
+        text_content = get_txt_text(filename)
+        logging.debug(f'Txt content is:{text_content}')
+    elif kind is None:
+        logging.debug(f'Cannot guess file type filename: {filename}!')
+        return 1
+    elif kind.extension == 'docx': 
+        text_content = get_word_text(filename)
+        logging.debug(f'Docx content is:{text_content}')
+    elif kind.extension == 'doc':
+        return False
+        #text_content = get_oldword_text(filename)
+        #logging.debug(f'Doc content is:{text_content}')
+    elif kind.extension == 'xlsx' or kind.extension == 'xls':
+        text_content = get_excel_text(filename)
+        logging.debug(f'Xlsx or xls content is:{text_content}')
+
+    qlist = [item.strip() for item in text_content.split('\n')]
+    qlist = list(filter(None, qlist))
+    return qlist
+
 async def create_admin_menu(level, event):
     ''' Create Admin menu '''
     logging.debug("Create menu buttons")
@@ -905,9 +1002,9 @@ async def get_qusetion_data(event_bot):
         if event.message.document:
             download_path = await event.message.download_media(file="questionfiles/") 
             logging.info(f'File saved to: {download_path}')                                   
-            with open(download_path, 'r', encoding="utf-8") as file:
-                new_questions = [line.strip() for line in file.readlines()]
-            
+            #with open(download_path, 'r', encoding="utf-8") as file:
+            #    new_questions = [line.strip() for line in file.readlines()]
+            new_questions = get_new_questions(download_path)
             all_questions[:]=new_questions
             logging.info(f'New all_questions: {all_questions}')
             async with dbm.DatabaseBot(sts.db_name) as db:

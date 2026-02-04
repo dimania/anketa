@@ -17,3 +17,10 @@ Telethon==1.39.0
 typing_extensions==4.13.1
 tzlocal==5.3.1
 urllib3==2.3.0
+pandas 
+xlsxwriter
+filetype
+python-docx
+openpyxl
+xlrd
+#docx2txt
