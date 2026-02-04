@@ -1005,6 +1005,9 @@ async def get_qusetion_data(event_bot):
             #with open(download_path, 'r', encoding="utf-8") as file:
             #    new_questions = [line.strip() for line in file.readlines()]
             new_questions = get_new_questions(download_path)
+            if not new_questions:
+                await event_bot.respond(_("Данный формат файла не поддерживается!"))
+                return False   
             all_questions[:]=new_questions
             logging.info(f'New all_questions: {all_questions}')
             async with dbm.DatabaseBot(sts.db_name) as db:
