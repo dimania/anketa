@@ -153,19 +153,15 @@ class DatabaseBot:
         return await cursor.fetchall()
 
     async def get_info_by_users(self):
-        ''' List all users who anser for stats'''
-        names=[]
+        ''' List all users who answer for stats'''
         cursor = await self.dbm.execute("SELECT DISTINCT name_user, nick_user FROM Answers")
         rows =   await cursor.fetchall()
         logging.debug(f"Get users rows: {rows}")
 
-        if not rows: return None
-
-        for row in rows:
-            names.append(dict(row).get('name_user'))
-
-        logging.info(f"Get questions from db: {names}")
-        return names
+        if not rows: 
+            return None
+        else: 
+            return rows
 
     async def get_info_for_report(self):
         ''' List all records form database for report'''
@@ -184,3 +180,4 @@ class DatabaseBot:
         cursor = await self.dbm.execute("DELETE FROM Answers WHERE id_user = ?", (id_user,))
         await self.dbm.commit()
         return await cursor.fetchall()
+

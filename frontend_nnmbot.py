@@ -139,24 +139,21 @@ async def create_admin_menu(level, event):
     logging.debug("Create menu buttons")
     keyboard = [
         [
-            Button.inline(_("Показать статистику"), b"/am_stats")
+            Button.inline(_("📈 Показать статистику"), b"/am_stats")
         ],
         [
-            Button.inline(_("Пройти анкетирование"), b"/am_anketa")
+            Button.inline(_("📃 Пройти анкетирование"), b"/am_anketa")
         ],
         [
-            Button.inline(_("Получить результаты"), b"/am_answers")
+            Button.inline(_("📊 Получить результаты"), b"/am_answers")
         ],
         [
-            Button.inline(_("Загрузить вопросы"), b"/am_questions")
+            Button.inline(_("📑 Текущие вопросы"), b"/am_show_questions")
+        ],
+        [
+            Button.inline(_("⬆️ Загрузить новые вопросы"), b"/am_questions")
         ]
     ]
-
-    #if level == sts.MENU_SUPERADMIN:
-    #   # Add items for SuperUser
-    #   keyboard.append([Button.inline(_("List All Films in DB"), b"/bm_dblist")])
-    #   keyboard.append([Button.inline(_("Go to control users menu"), b"/bm_cum")])
-    
     #clear old message
     await event.delete()
     # send menu
@@ -169,10 +166,13 @@ async def show_stats(event):
     logging.debug("Call show_stats() function")
 
     async with dbm.DatabaseBot(sts.db_name) as db:
-        names = await db.get_info_by_users()
-    strstat=f"Всего прошло опрос: {len(names)}\nСписок:\n"
-    for name in names:
-        strstat=strstat+f"{name}\n"
+        rows = await db.get_info_by_users()
+    strstat=f"🔢 Ответили на вопросы: {len(rows)}\n\n👥 Список прошедших опрос:\n\n"
+
+    for row in rows:
+        #dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
+        #strstat=strstat+f"{dict(row).get('name_user')} { dt.strftime('%d.%m.%y %H:%M') }\n"
+        strstat=strstat+f"{dict(row).get('name_user')}\n"
 
     await event.respond(strstat)
 
@@ -265,13 +265,13 @@ async def get_qusetion_data(event_bot):
     logging.debug("Call get_qusetion_data() function")
     
     await event_bot.respond(_(\
-    "🟢Загрузите файл с вопросами.\n" \
+    "📎 Загрузите файл с вопросами.\n\n" \
     "Поддержиаются следующие типы файлов:\n" \
-    "Текстовый файл (txt) по одному вопросу на строке\n" \
-    "MS Word файл (docx) по одному вопросу на строке\n" \
-    "MS Excel файл (xls,xlsx) по одному вопросу в ячейке в первой колонке\n" \
-    "⚠️Старый формат MS word (doc) не поддерживается\n" \
-    "❗Текущие вопросы будут удалены.❗"))
+    "🔹Текстовый файл (txt) по одному вопросу на строке\n" \
+    "🔹MS Word файл (docx) по одному вопросу на строке\n" \
+    "🔹MS Excel файл (xls,xlsx) по одному вопросу в ячейке в первой колонке\n" \
+    "⚠️ Старый формат MS word (doc) не поддерживается!\n" \
+    "\n♨️ Текущие вопросы будут удалены!"))
 
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
@@ -363,6 +363,19 @@ async def run_anketa(id_user, event_bot, menu):
 
     return 0 
 
+async def show_qusetions(event_bot):
+    '''
+    Show all questions
+    '''
+    i=1
+    message=f"❔ Текущие вопросы:\n"
+    for qst in all_questions:
+        message = message + f"{i}.{qst}\n"
+        i=i+1
+    
+    await event_bot.respond(message)
+    await create_admin_menu(0, event_bot)
+
 async def main_frontend():
     ''' Loop for bot connection '''
     
@@ -387,7 +400,8 @@ async def main_frontend():
             logging.debug(f"Get permissions = {permissions}  for channe={channel} user={id_user}")
         except Exception as error:
             logging.error(f"Can not get permissions for channel={channel} user={id_user} Error:{error}). \nPossibly user not join to group but send request for Control")  
-                   
+            return False 
+
         if event_bot.message.message == '/start':
             if permissions.is_admin:
                 #await event_bot.respond("You are admin channel!")
@@ -395,20 +409,20 @@ async def main_frontend():
             else:
                 # run anketa for all users who not Admin                    
                 await check_user_run_anketa(id_user, event_bot, 0)           
-        elif event_bot.message.message == '/am_stats' and permissions.is_admin:
-            await show_stats(event_bot)
-            await create_admin_menu(0, event_bot)
-        elif event_bot.message.message == '/am_anketa'  and permissions.is_admin:
-            await check_user_run_anketa(id_user, event_bot, 1)
-            await create_admin_menu(0, event_bot)
-        elif event_bot.message.message == '/am_answers'  and permissions.is_admin:
-            await send_answ_db(event_bot)
-            await create_admin_menu(0, event_bot)
-        elif event_bot.message.message == '/am_questions' and permissions.is_admin:
-            all_questions = await get_qusetion_data(event_bot)
-            await create_admin_menu(0, event_bot)
-        else:     
-            pass
+        #elif event_bot.message.message == '/am_stats' and permissions.is_admin:
+        #    await show_stats(event_bot)
+        #    await create_admin_menu(0, event_bot)
+        #elif event_bot.message.message == '/am_anketa'  and permissions.is_admin:
+        #    await check_user_run_anketa(id_user, event_bot, 1)
+        #    await create_admin_menu(0, event_bot)
+        #elif event_bot.message.message == '/am_answers'  and permissions.is_admin:
+        #    await send_answ_db(event_bot)
+        #    await create_admin_menu(0, event_bot)
+        #elif event_bot.message.message == '/am_questions' and permissions.is_admin:
+        #    all_questions = await get_qusetion_data(event_bot)
+        #    await create_admin_menu(0, event_bot)
+        #else:     
+        #    pass
 
     # Run hundler for button callback - menu for Admin
     @bot.on(events.CallbackQuery())
@@ -435,6 +449,9 @@ async def main_frontend():
             await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_questions':
             await get_qusetion_data(event_bot_choice)
+            #await create_admin_menu(0, event_bot_choice)
+        elif button_data == '/am_show_questions':
+            await show_qusetions(event_bot_choice)
             #await create_admin_menu(0, event_bot_choice)
         else:     
             pass
