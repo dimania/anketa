@@ -1,13 +1,13 @@
 '''
- Telegram Bot for filter films from NNMCLUB channel
- version 0.6
- Module dbmodule_nnmbot.py use aiosqlite Dbatabase functions  
+ Telegram Bot Anketing
+ version 0.1
+ Module dbmodule.py use aiosqlite Dbatabase functions  
 '''
 
 from datetime import datetime
-import json
+#import json
 import logging
-import os.path
+#import os.path
 import asyncio
 import aiosqlite
 
@@ -63,14 +63,13 @@ class DatabaseBot:
     async def db_modify(self, *args):
         ''' Update or insert data in db - common function'''
 
-        global FAIL_MODIFY #for test raice condition - remove in prod
         for i in range(sts.RETRIES_DB_LOCK):
             try:
                 async with self.lock:
                     async with self.dbm.execute(args[0],args[1]) as cursor:
                         await self.dbm.commit()
                         logging.debug(f"SQL MODIFY: result={str(cursor.rowcount)}" )
-                        return cursor
+                        break 
             except aiosqlite.OperationalError as error:        
                 logging.info(f"Retry modify records in db:{i} Error:{error}") 
                 await asyncio.sleep(0.1)                  
@@ -79,9 +78,10 @@ class DatabaseBot:
                 return -1            
         else: 
             logging.error(f"Error MODIFY data in DB! Retries pass:{i}")
-            FAIL_MODIFY = FAIL_MODIFY + 1  #for test raice condition - remove in prod
             return None           
-            
+        
+        return cursor
+
     async def db_add_answer(self, id_user, name_user, nick_user, question_id, answer_user):
         ''' Add new answer to database '''
         cur_date = datetime.now()
@@ -124,7 +124,7 @@ class DatabaseBot:
         logging.info(f"Get questions from db: {new_questions}")
         return new_questions
 
-    async def db_update_answer(self, id_user, name_user, nick_user, answer_user ): #NOTUSE
+    async def db_update_answer(self, id_user, answer_user ): #NOTUSE
         ''' Update Answer in database '''
         cur_date = datetime.now()
       
@@ -147,7 +147,7 @@ class DatabaseBot:
         cursor = await self.dbm.execute("SELECT answer_id FROM Answers WHERE id_user = ? ORDER BY id DESC LIMIT 1", (id_user,))
         return await cursor.fetchone()
         
-    async def db_info(self, id_user): #NOTUSE
+    async def db_info(self): #NOTUSE
         ''' Get Info database: all records '''        
         cursor = await self.dbm.execute("SELECT COUNT(*) FROM Answers" )
         

@@ -1,6 +1,6 @@
 '''
- Telegram Bot for filter films from NNMCLUB channel
- version 0.6
+ Telegram Bot Anketing 
+ version 0.1
  Module settings.py Set internal variables
  and constants, get global configs from file myconfig.py
 '''
@@ -9,7 +9,7 @@
 # replace myconfig with config by example
 
 
-import re
+#import re
 import os
 
 #------------------------
@@ -25,6 +25,26 @@ BASIC_MENU = 1
 CUSER_MENU = 2
 LIST_REC_IN_MSG = 20
 RETRIES_DB_LOCK = 5 
+
+api_id = None
+api_hash = None
+mybot_token = None
+system_version = None
+session_bot = None
+bot_name = None
+admin_name = None
+Channel_my = None
+db_name = None
+proxies = None
+logfile = None
+use_proxy = None
+log_level = None
+Lang = None
+cursor = None
+connection = None
+ses_bot_str = None
+all_questions = None
+
 
 def get_config(config=cfg):
     ''' set global variable from included config.py - import config directive'''
@@ -44,9 +64,8 @@ def get_config(config=cfg):
     global Lang
     global cursor
     global connection
-    global ses_usr_str
     global ses_bot_str
-    global all_questions 
+    global all_questions
 
     cursor = None
     connection = None

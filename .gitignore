@@ -2,7 +2,6 @@ myconfig.py
 *.db*
 *.session
 test/*
-test*
 *.backup
 *.log
 __pycache__/*

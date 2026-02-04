@@ -1,7 +1,7 @@
 '''
- Telegram Bot for ankettting peaple
+ Telegram Bot for Ankeing 
  version 0.1
- Module frontend_nnmbot.py 
+ Module anketa.py 
   
 '''
 
@@ -28,7 +28,7 @@ import docx
 #from requests.packages.urllib3.util.retry import Retry
 # --------------------------------
 import settings as sts
-import dbmodule_aio_nnmbot as dbm
+import dbmodule as dbm
 # --------------------------------
 #Glogal vars
 Channel_my_id = None
@@ -463,7 +463,7 @@ async def main():
     ''' Main function '''
     global Channel_my_id
 
-    print("Start frontend Bot...")
+    print("Start anketa Bot...")
     
     async with dbm.DatabaseBot(sts.db_name) as db:
         logging.debug('Create db if not exist.')
