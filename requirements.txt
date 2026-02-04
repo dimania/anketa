@@ -23,4 +23,4 @@ filetype
 python-docx
 openpyxl
 xlrd
-#docx2txt
+
