@@ -1,5 +1,5 @@
 '''
- Telegram Bot for Ankeing 
+ Telegram Bot for Anketing 
  version 0.1
  Module anketa.py 
   
@@ -500,7 +500,7 @@ logging.info("Start frontend bot.")
 localedir = os.path.join(os.path.dirname(os.path.realpath(os.path.normpath(sys.argv[0]))), 'locales')
 
 if os.path.isdir(localedir):
-    translate = gettext.translation('nnmbot', localedir, [sts.Lang])
+    translate = gettext.translation('anketa', localedir, [sts.Lang])
     _ = translate.gettext
 else: 
     logging.info(f"No locale dir found for support langs: {localedir} \n Use default lang: Engilsh")

@@ -4,7 +4,7 @@ FROM alpine AS builder
 RUN apk update
 RUN apk add build-base
 RUN apk add pkgconf
-RUN apk add sqlite-dev
+
 
 #
 # Build final image
