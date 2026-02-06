@@ -33,7 +33,19 @@ import dbmodule as dbm
 #Glogal vars
 bot = None
 
-
+async def check_nickname(username):
+    try:
+        # Пытаемся получить информацию о пользователе/канале по нику
+        entity = await bot.get_entity(username)
+        logging.debug(f"Nickname [{username}] ok. Object type is: {type(entity).__name__}")
+        return True
+    except ValueError:
+        # Возникает, если Telethon не нашел сущность (обычно если ника нет)
+        logging.debug(f"Nickname [{username}] not found ")
+        return False
+    except Exception as e:
+        logging.debug(f"Error check Nickname [{username}] {e}")
+        return False
 
 async def is_utf8_text_file(filename):
     """Checks if a file can be entirely decoded as UTF-8 text."""
@@ -463,6 +475,12 @@ async def main():
 
     print("Start anketa Bot...")
     
+    for admin in sts.Admins:
+        if not await check_nickname(admin):
+            logging.error(f'Admin with nickname: {admin} Not exist in Telegram! Check config file!')
+            print(f'Admin with nickname: {admin} Not exist in Telegram! Check config file!')
+            exit(-1)
+
     async with dbm.DatabaseBot(sts.db_name) as db:
         logging.debug('Create db if not exist.')
         await db.db_create()
