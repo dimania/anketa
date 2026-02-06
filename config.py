@@ -40,6 +40,7 @@ bot_name = 'anketa_bot'
 
 #Admins array 
 #Default admin user. Must be added to channel as admin 
+# Example: Admins = ['admin_nickname1','admin_nickname2' ]
 Admins = ['admin_nickname']
 
 # filename database - better use full path

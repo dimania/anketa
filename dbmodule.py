@@ -36,6 +36,13 @@ class DatabaseBot:
         await self.dbm.execute('''PRAGMA journal_mode=WAL''')  # Активация WAL
 
         await self.dbm.execute('''
+        CREATE TABLE IF NOT EXISTS Admins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        admin TEXT NOT NULL,
+        date TEXT
+        )
+        ''')
+        await self.dbm.execute('''
         CREATE TABLE IF NOT EXISTS Questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         question TEXT NOT NULL,
@@ -116,13 +123,44 @@ class DatabaseBot:
         rows = await cursor.fetchall()
         logging.debug(f"Get questions rows: {rows}")
 
-        if not rows: return None
+        if not rows: return False
 
         for row in rows:
             new_questions.append(dict(row).get('question'))
 
         logging.info(f"Get questions from db: {new_questions}")
         return new_questions
+    
+    async def db_load_admins(self):
+        ''' Load all question in Array '''
+        new_admins=[]
+        cursor = await self.dbm.execute("SELECT admin, date FROM Admins")
+        rows = await cursor.fetchall()
+        logging.debug(f"Get questions rows: {rows}")
+
+        if rows:
+            return rows
+        else: 
+            return False
+
+    async def db_add_admins(self, nicknames):
+        ''' Add admin in database for Array nicknames'''
+        cur_date = datetime.now()
+        
+        #add new admins
+        for admin in nicknames:
+            cursor = await self.db_modify("INSERT INTO Admins (admin, date) VALUES(?, ? )",\
+                                    ( admin, cur_date ))
+        if cursor: 
+            return str(cursor.lastrowid)
+        else:
+            return False
+         
+    async def db_del_admins(self, nickname):
+        ''' Remove admin from database for  nickname'''
+        cursor = await self.dbm.execute("DELETE FROM Admins WHERE admin = ?", (nickname,))
+        await self.dbm.commit()
+        return await cursor.fetchall()
 
     async def db_update_answer(self, id_user, answer_user ): #NOTUSE
         ''' Update Answer in database '''

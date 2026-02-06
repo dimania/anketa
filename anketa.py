@@ -33,6 +33,125 @@ import dbmodule as dbm
 #Glogal vars
 bot = None
 
+async def add_admins(event):
+    ''' Select users for add to admins list
+        event = bot event handled id
+        level = user level for show menu exxtended or no
+    '''
+    id_user = event.query.user_id
+    logging.debug(f"Create select users dialog for user {id_user}")
+    
+    buttons = [
+    {
+        "text":"👥 Выбор Админа",
+        "request_users": {
+            "request_id": 1,# button id
+            "max_quantity": 5,
+            "user_is_bot": False,
+            "request_name": True,
+            "request_username": True, 
+        }
+    }
+    ]
+    reply_markup = {"keyboard": [buttons], "resize_keyboard": True, "one_time_keyboard": True }
+    payload = {
+    "chat_id": id_user, # Id user to
+    "text": f"Нажмите кнопку 'Выбор Админа' чтобы добавть в список администраторов", 
+    "reply_markup": json.dumps(reply_markup)
+    }
+
+    # Send selection user Button 
+    url = f"https://api.telegram.org/bot{sts.mybot_token}/sendMessage"
+
+    response = requests.post(url, data=payload, timeout = 30, proxies=sts.proxies)
+    logging.debug(f"Rsponse Select user button post:{response}\n")
+
+    # hanled answer
+    @bot.on(events.Raw(types=UpdateNewMessage))
+    async def on_requested_peer_user(event_select):
+        logging.debug(f"Get select user event:{event_select}")
+        #users_id_list=[] 
+        #usernames=[]
+        nicknames=[]
+        try:
+            if event_select.message.action.peers[0].__class__.__name__ == "RequestedPeerUser":
+                button_id = event_select.message.action.button_id
+                if button_id == 1:
+                    for peer in event_select.message.action.peers:
+                        #usernames.append(peer.first_name)
+                        #users_id_list.append(peer.user_id)
+                        nicknames.append(peer.username)
+                    bot.remove_event_handler(on_requested_peer_user)
+                    logging.debug(f"Get selected users:{nicknames}")
+                    
+                    # Add new admins in DB
+                    async with dbm.DatabaseBot(sts.db_name) as db:
+                        ret = await db.db_add_admins(nicknames)
+                    if ret:
+                        #Update current list of admins
+                        for nik in nicknames:
+                            sts.Admins.append(nik)
+                        text_reply="🏁Администраторы добавлены🏁"
+                    else: 
+                        text_reply="🏁Ошибка добавления админа🏁"
+
+                    reply_markup = { "remove_keyboard": True }
+                    payload_remove_kb = {
+                    "chat_id": id_user, # Id user to
+                    "text": text_reply, 
+                    "reply_markup": json.dumps(reply_markup)
+                    }
+                    response = requests.post(url, data=payload_remove_kb, timeout = 30, proxies=sts.proxies)
+                    logging.debug(f"Rsponse Remove keyboard:{response}\n")
+                    await create_admin_menu(0, event) 
+                    
+                    return 
+        except Exception as error :
+            logging.debug(f"It is not RequestedPeerUser message:{error}")
+            return None
+
+async def del_admins(event):
+    ''' Delete admins form list
+        event = bot event handled id
+        level = user level for show menu exxtended or no
+    '''
+    
+    logging.debug("Call del_admins() function")
+    bdata_id='DEL_ADMIN_'
+    button=[]
+    i=0
+    logging.debug(f"Len Admins: {len(sts.Admins)}")
+   
+    if len(sts.Admins) > 1:
+        message="❌ Выберете админа для удаления:"        
+        for cur_admin in sts.Admins:
+            if i == 0: 
+                i=i+1
+                continue
+            bdata=bdata_id+str(cur_admin)
+            button.append([ Button.inline(cur_admin, bdata)])
+    else:
+           await event.respond("⚠️Нет админов для удаления.")
+           return False
+    
+    await event.respond(message, buttons=button)    
+    return True
+   
+
+async def show_admins(event):
+    ''' Show current admins
+        event = bot event handled id
+        level = user level for show menu exxtended or no
+    '''
+    str='📃Cписок текущих Админов:\n'
+    for admin in sts.Admins:
+        str = str + f"{admin} \n"
+    
+    await event.respond(str)
+    await create_admin_menu(0, event)
+
+    pass
+
 async def check_nickname(username):
     try:
         # Пытаемся получить информацию о пользователе/канале по нику
@@ -162,6 +281,18 @@ async def create_admin_menu(level, event):
         ],
         [
             Button.inline("⬆️ Загрузить новые вопросы", b"/am_questions")
+        ]
+        ,
+        [
+            Button.inline("👮‍♂️ Добавть администратора", b"/am_add_admins")
+        ]
+        ,
+        [
+            Button.inline("🙅‍♂️ Удалить администратора", b"/am_del_admins")
+        ]
+        ,
+        [
+            Button.inline("🕵️ Просмотреть всех админов", b"/am_show_admins")
         ]
     ]
     #clear old message
@@ -464,10 +595,20 @@ async def main_frontend():
         elif button_data == '/am_show_questions':
             await show_qusetions(event_bot_choice)
             #await create_admin_menu(0, event_bot_choice)
-        else:     
-            pass
-
-
+        elif button_data == '/am_add_admins':
+            await add_admins(event_bot_choice)
+        elif button_data == '/am_del_admins':
+            await del_admins(event_bot_choice)
+        elif button_data == '/am_show_admins':
+            await show_admins(event_bot_choice)
+        elif  'DEL_ADMIN_' in button_data:
+            # Delete admin
+            data = button_data
+            admin_nickname_delete = data.replace('DEL_ADMIN_', '')
+            async with dbm.DatabaseBot(sts.db_name) as db:
+                res = await db.db_del_admins(admin_nickname_delete)
+            sts.Admins.remove(admin_nickname_delete)
+            
     return bot
 
 async def main():
@@ -485,6 +626,12 @@ async def main():
         logging.debug('Create db if not exist.')
         await db.db_create()
         new_questions = await db.db_load_questions()
+        rows = await db.db_load_admins()
+        if rows:
+            for row in rows:
+                sts.Admins.append(dict(row).get('admin'))
+
+        logging.info(f"Get questions from db: {new_questions}")
 
     if new_questions:
         all_questions[:] = new_questions
@@ -497,6 +644,7 @@ async def main():
 sts.get_config()
 # Enable logging
 
+# Init default questions
 all_questions = ["text_q1","text_q2","text_q3","text_q4","text_q5"]
 
 filename=os.path.join(os.path.dirname(sts.logfile),os.path.basename(sts.logfile))
