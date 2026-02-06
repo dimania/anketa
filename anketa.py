@@ -33,7 +33,6 @@ import dbmodule as dbm
 #Glogal vars
 Channel_my_id = None
 bot = None
-_ = None
 
 
 
@@ -139,25 +138,25 @@ async def create_admin_menu(level, event):
     logging.debug("Create menu buttons")
     keyboard = [
         [
-            Button.inline(_("📈 Показать статистику"), b"/am_stats")
+            Button.inline("📈 Показать статистику", b"/am_stats")
         ],
         [
-            Button.inline(_("📃 Пройти анкетирование"), b"/am_anketa")
+            Button.inline("📃 Пройти анкетирование", b"/am_anketa")
         ],
         [
-            Button.inline(_("📊 Получить результаты"), b"/am_answers")
+            Button.inline("📊 Получить результаты", b"/am_answers")
         ],
         [
-            Button.inline(_("📑 Текущие вопросы"), b"/am_show_questions")
+            Button.inline("📑 Текущие вопросы", b"/am_show_questions")
         ],
         [
-            Button.inline(_("⬆️ Загрузить новые вопросы"), b"/am_questions")
+            Button.inline("⬆️ Загрузить новые вопросы", b"/am_questions")
         ]
     ]
     #clear old message
     await event.delete()
     # send menu
-    await event.respond(_("**☣ Режим Администратора:**"), parse_mode='md', buttons=keyboard)
+    await event.respond("**☣ Режим Администратора:**", parse_mode='md', buttons=keyboard)
 
 async def show_stats(event):
     '''
@@ -167,6 +166,10 @@ async def show_stats(event):
 
     async with dbm.DatabaseBot(sts.db_name) as db:
         rows = await db.get_info_by_users()
+    if not rows:
+        await event.respond(f"🚷На данный момент нет информаци.\nЕще никто не прошел опрос.")
+        return False
+
     strstat=f"🔢 Ответили на вопросы: {len(rows)}\n\n👥 Список прошедших опрос:\n\n"
 
     for row in rows:
@@ -175,9 +178,8 @@ async def show_stats(event):
         strstat=strstat+f"{dict(row).get('name_user')}\n"
 
     await event.respond(strstat)
-
-    
-    return 0 
+  
+    return True 
 
 async def send_answ_db(event):
     '''
@@ -189,10 +191,14 @@ async def send_answ_db(event):
     
     filename = f"reports/report_{dt}.xlsx"
     logging.debug(f"Gen filename: {filename}")
-    await gen_excel(filename)
-    message="Ваш отчет"
-    await bot.send_file( event.query.user_id, filename, caption=message, parse_mode="html" ) 
-    return 0
+    res = await gen_excel(filename)
+    if res:
+        message="Ваш отчет"
+        await bot.send_file( event.query.user_id, filename, caption=message, parse_mode="html" ) 
+        return True
+    else:
+        await event.respond(f"🚷На данный момент нет информаци для отчета.\nЕще никто не прошел опрос.")
+        return False
 
 async def gen_excel(filename):
     '''
@@ -209,6 +215,8 @@ async def gen_excel(filename):
     
     async with dbm.DatabaseBot(sts.db_name) as db:
         rows = await db.get_info_for_report()
+    if not rows:
+        return False
 
     # Get name_user, nick_user, question_id, answer_user, date
     for row in rows:
@@ -264,14 +272,14 @@ async def get_qusetion_data(event_bot):
     '''
     logging.debug("Call get_qusetion_data() function")
     
-    await event_bot.respond(_(\
+    await event_bot.respond(\
     "📎 Загрузите файл с вопросами.\n\n" \
     "Поддержиаются следующие типы файлов:\n" \
     "🔹Текстовый файл (txt) по одному вопросу на строке\n" \
     "🔹MS Word файл (docx) по одному вопросу на строке\n" \
     "🔹MS Excel файл (xls,xlsx) по одному вопросу в ячейке в первой колонке\n" \
     "⚠️ Старый формат MS word (doc) не поддерживается!\n" \
-    "\n♨️ Текущие вопросы и ответы будут удалены!"))
+    "\n♨️ Текущие вопросы и ответы будут удалены!")
 
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
@@ -283,7 +291,7 @@ async def get_qusetion_data(event_bot):
             #    new_questions = [line.strip() for line in file.readlines()]
             new_questions = await get_new_questions(download_path)
             if not new_questions:
-                await event_bot.respond(_("⚠️Данный формат файла не поддерживается!"))
+                await event_bot.respond("⚠️Данный формат файла не поддерживается!")
                 bot.remove_event_handler(bot_handler_f_bot)
                 await create_admin_menu(0, event_bot)
                 return False   
@@ -292,7 +300,7 @@ async def get_qusetion_data(event_bot):
             async with dbm.DatabaseBot(sts.db_name) as db:
                 await db.db_rewrite_new_questions(all_questions)
 
-            await event.respond(_("Данные загружены в бот."))
+            await event.respond("Данные загружены в бот.")
             bot.remove_event_handler(bot_handler_f_bot)
             await create_admin_menu(0, event_bot)
     
@@ -316,8 +324,8 @@ async def check_user_run_anketa(id_user, event_bot, menu):
     # if user already answer     
     if res:
        #await event_bot.respond(f"Вы уже отвечали на вопросы.\n Желаете пройти опрос снова?\n Предыдущие ответы будут потяряны.\n")
-       keyboard = [ Button.inline(_("Да"), b"/yes"),Button.inline(_("Нет"), b"/no") ]
-       await event_bot.respond(_("Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\nПредыдущие ответы будут потяряны.\n"), parse_mode='md', buttons=keyboard)
+       keyboard = [ Button.inline("Да", b"/yes"),Button.inline("Нет", b"/no") ]
+       await event_bot.respond("Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\nПредыдущие ответы будут потяряны.\n", parse_mode='md', buttons=keyboard)
       
        @bot.on(events.CallbackQuery())
        async def callback_yn(event):            
@@ -498,13 +506,6 @@ logging.basicConfig(level=sts.log_level, filename=filename, filemode="a", format
 logging.info("Start frontend bot.")
 
 localedir = os.path.join(os.path.dirname(os.path.realpath(os.path.normpath(sys.argv[0]))), 'locales')
-
-if os.path.isdir(localedir):
-    translate = gettext.translation('anketa', localedir, [sts.Lang])
-    _ = translate.gettext
-else: 
-    logging.info(f"No locale dir found for support langs: {localedir} \n Use default lang: Engilsh")
-    def _(message): return message
 
 if sts.use_proxy:
     prx = re.search('(^.*)://(.*):(.*$)', sts.proxies.get('http'))

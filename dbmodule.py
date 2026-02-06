@@ -160,7 +160,7 @@ class DatabaseBot:
         logging.debug(f"Get users rows: {rows}")
 
         if not rows: 
-            return None
+            return False
         else: 
             return rows
 
@@ -174,7 +174,7 @@ class DatabaseBot:
         if rows: 
             return rows
         else:
-            return None
+            return False
 
     async def db_del_user_answers(self, id_user):
         '''Delete all answers for user from database '''

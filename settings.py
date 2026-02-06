@@ -8,8 +8,6 @@
 #!!!!!!!! Replace with you config file here !!!!!!!
 # replace myconfig with config by example
 
-
-#import re
 import os
 
 #------------------------
@@ -39,7 +37,6 @@ proxies = None
 logfile = None
 use_proxy = None
 log_level = None
-Lang = None
 cursor = None
 connection = None
 ses_bot_str = None
@@ -61,7 +58,6 @@ def get_config(config=cfg):
     global logfile
     global use_proxy
     global log_level
-    global Lang
     global cursor
     global connection
     global ses_bot_str
@@ -78,8 +74,7 @@ def get_config(config=cfg):
         db_name = config.db_name
         logfile = config.logfile
         use_proxy = config.use_proxy
-        log_level = config.log_level
-        Lang = config.Lang
+        log_level = config.log_level      
         
         # May be comment out in config.py
         if 'API_ID' in vars(config):
