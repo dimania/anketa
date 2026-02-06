@@ -114,6 +114,14 @@ def get_txt_text(filename):
 
 def main():
 
+    ss = ['hhh']
+    if ss:
+         print("ss true")
+    else:
+        print("ss False")
+
+    exit(0)
+
     filename='test_formats/Анкета.docx'
     
     root,ext = os.path.splitext(filename)

@@ -64,7 +64,7 @@ async def add_admins(event):
     url = f"https://api.telegram.org/bot{sts.mybot_token}/sendMessage"
 
     response = requests.post(url, data=payload, timeout = 30, proxies=sts.proxies)
-    logging.debug(f"Rsponse Select user button post:{response}\n")
+    logging.debug(f"Rеsponse Select user button post:{response}\n")
 
     # hanled answer
     @bot.on(events.Raw(types=UpdateNewMessage))
@@ -73,27 +73,37 @@ async def add_admins(event):
         #users_id_list=[] 
         #usernames=[]
         nicknames=[]
+        text_reply=''
+
         try:
             if event_select.message.action.peers[0].__class__.__name__ == "RequestedPeerUser":
                 button_id = event_select.message.action.button_id
                 if button_id == 1:
                     for peer in event_select.message.action.peers:
+                        if peer.username in sts.Admins:
+                           text_reply=text_reply+f"⚠️{peer.username} уже админ!\n"
+                           continue
+                        if peer.username == None:
+                           text_reply=text_reply+f"⚠️{peer.first_name} не имеет nickname!\n"
+                           continue 
                         #usernames.append(peer.first_name)
                         #users_id_list.append(peer.user_id)
                         nicknames.append(peer.username)
                     bot.remove_event_handler(on_requested_peer_user)
-                    logging.debug(f"Get selected users:{nicknames}")
-                    
-                    # Add new admins in DB
-                    async with dbm.DatabaseBot(sts.db_name) as db:
-                        ret = await db.db_add_admins(nicknames)
-                    if ret:
-                        #Update current list of admins
-                        for nik in nicknames:
-                            sts.Admins.append(nik)
-                        text_reply="🏁Администраторы добавлены🏁"
-                    else: 
-                        text_reply="🏁Ошибка добавления админа🏁"
+                    if nicknames:
+                        logging.debug(f"Get selected users:{nicknames}")
+                        # Add new admins in DB
+                        async with dbm.DatabaseBot(sts.db_name) as db:
+                            ret = await db.db_add_admins(nicknames)
+                        if ret:
+                            #Update current list of admins
+                            for nik in nicknames:
+                                sts.Admins.append(nik)
+                            text_reply=text_reply+f"🏁Администраторы добавлены🏁"
+                        else:
+                            text_reply=f"🏁Ошибка добавления админа🏁"
+                    else:
+                        text_reply=text_reply+f"Некого добавить!"
 
                     reply_markup = { "remove_keyboard": True }
                     payload_remove_kb = {
@@ -132,6 +142,7 @@ async def del_admins(event):
             button.append([ Button.inline(cur_admin, bdata)])
     else:
            await event.respond("⚠️Нет админов для удаления.")
+           await create_admin_menu(0,event)
            return False
     
     await event.respond(message, buttons=button)    
@@ -608,7 +619,8 @@ async def main_frontend():
             async with dbm.DatabaseBot(sts.db_name) as db:
                 res = await db.db_del_admins(admin_nickname_delete)
             sts.Admins.remove(admin_nickname_delete)
-            
+            await event_bot_choice.respond(f"🏁Админ {admin_nickname_delete} удален🏁")
+            await create_admin_menu(0, event_bot_choice)
     return bot
 
 async def main():
