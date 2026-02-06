@@ -30,8 +30,6 @@ mybot_token = None
 system_version = None
 session_bot = None
 bot_name = None
-admin_name = None
-Channel_my = None
 db_name = None
 proxies = None
 logfile = None
@@ -41,6 +39,7 @@ cursor = None
 connection = None
 ses_bot_str = None
 all_questions = None
+Admins = []
 
 
 def get_config(config=cfg):
@@ -62,6 +61,7 @@ def get_config(config=cfg):
     global connection
     global ses_bot_str
     global all_questions
+    global Admins
 
     cursor = None
     connection = None
@@ -69,12 +69,11 @@ def get_config(config=cfg):
     try:
         system_version = config.system_version
         bot_name = config.bot_name
-        admin_name = config.admin_name
-        Channel_my = config.Channel_my
         db_name = config.db_name
         logfile = config.logfile
         use_proxy = config.use_proxy
-        log_level = config.log_level      
+        log_level = config.log_level
+        Admins[:] = config.Admins      
         
         # May be comment out in config.py
         if 'API_ID' in vars(config):

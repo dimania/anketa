@@ -35,16 +35,12 @@ system_version = "0.2-yorever"
 #File name for bot connection - any filename
 session_bot='nnmbot_session_bot'
 
-#Channels must be public channel else use ID channel in notation -100ID example: -1002007192033 where 2007192033 ID channel
-# Id chanell for filter messages 
-Channel_my  = 't.me/######'
-
 # Name of bot in Telegram.
 bot_name = 'anketa_bot'
 
-#Admin name - where send messages from new user about request add to users bot 
+#Admins array 
 #Default admin user. Must be added to channel as admin 
-admin_name = 'adm_dimania'
+Admins = ['admin_nickname']
 
 # filename database - better use full path
 db_name = 'database.db'  # database name, better set full path

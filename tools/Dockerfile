@@ -26,4 +26,6 @@ RUN . /home/anketa/venv/bin/activate
 ENV PATH=/home/anketa/venv/bin:$PATH
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir pysocks
-
+# Set timezone 
+ENV TZ=Europe/Moscow
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

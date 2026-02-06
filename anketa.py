@@ -31,7 +31,6 @@ import settings as sts
 import dbmodule as dbm
 # --------------------------------
 #Glogal vars
-Channel_my_id = None
 bot = None
 
 
@@ -394,7 +393,6 @@ async def main_frontend():
         logging.debug(f"Get NewMessage event_bot: {event_bot}")
         menu_level = 0
       
-        channel = PeerChannel(Channel_my_id)
         id_user = event_bot.message.peer_id.user_id
         logging.info(f"LOGIN USER_ID:{event_bot.message.peer_id.user_id}")
         user_ent = await bot.get_entity(id_user)
@@ -403,16 +401,10 @@ async def main_frontend():
         
         logging.debug(f"Get username for id {id_user}: {nickname}")
 
-        try:
-            permissions = await bot.get_permissions(PeerChannel(Channel_my_id), event_bot.message.peer_id.user_id)
-            logging.debug(f"Get permissions = {permissions}  for channe={channel} user={id_user}")
-        except Exception as error:
-            logging.error(f"Can not get permissions for channel={channel} user={id_user} Error:{error}). \nPossibly user not join to group but send request for Control")  
-            return False 
 
         if event_bot.message.message == '/start':
-            if permissions.is_admin:
-                #await event_bot.respond("You are admin channel!")
+            if nickname in sts.Admins:
+                #await event_bot.respond("You are admin!")
                 await create_admin_menu(0, event_bot)
             else:
                 # run anketa for all users who not Admin                    
@@ -436,13 +428,12 @@ async def main_frontend():
     @bot.on(events.CallbackQuery())
     async def callback_bot_choice(event_bot_choice):
         id_user = event_bot_choice.query.user_id
-        logging.info(f"Get callback event for user[{id_user}] {event_bot_choice}")  
-        try:
-            permissions = await bot.get_permissions(PeerChannel(Channel_my_id), id_user)
-            logging.debug(f"Get permissions = {permissions}  for  user={id_user}")
-        except Exception as error:
-            logging.error(f"Can not get permissions for  user={id_user} Error:{error}). \nPossibly user not join to group but send request for Control")  
-        if not permissions.is_admin: return 0
+        user_ent = await bot.get_entity(id_user)
+        nickname = user_ent.username
+        logging.debug(f"Get callback event for user[{id_user}] {event_bot_choice}")
+       
+        # If user not Admin ignore button actions  
+        if nickname not in sts.Admins: return 0
 
         button_data = event_bot_choice.data.decode()
         #await event_bot.delete()
@@ -469,7 +460,6 @@ async def main_frontend():
 
 async def main():
     ''' Main function '''
-    global Channel_my_id
 
     print("Start anketa Bot...")
     
@@ -481,16 +471,6 @@ async def main():
     if new_questions:
         all_questions[:] = new_questions
 
-    # Get data for admin user for check and add to db (initialization)
-    #admin_ent = bot.loop.run_until_complete(bot.get_entity(sts.admin_name))
-    admin_ent = await bot.get_entity(sts.admin_name)
-    name_user = admin_ent.username
-    id_user = admin_ent.id
-    if not name_user: name_user = admin_ent.first_name
-    logging.debug(f"Get Admin username for id {id_user}: {name_user}")
-
-    #Channel_my_id = bot.loop.run_until_complete(bot.get_peer_id(sts.Channel_my))
-    Channel_my_id = await bot.get_peer_id(sts.Channel_my)
     # Run basic events loop
     await main_frontend()    
 
@@ -501,7 +481,7 @@ sts.get_config()
 
 all_questions = ["text_q1","text_q2","text_q3","text_q4","text_q5"]
 
-filename=os.path.join(os.path.dirname(sts.logfile),'frontend_'+os.path.basename(sts.logfile))
+filename=os.path.join(os.path.dirname(sts.logfile),os.path.basename(sts.logfile))
 logging.basicConfig(level=sts.log_level, filename=filename, filemode="a", format="%(asctime)s %(levelname)s %(message)s")
 logging.info("Start frontend bot.")
 
