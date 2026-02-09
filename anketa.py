@@ -161,19 +161,19 @@ async def show_admins(event):
         event = bot event handled id
         level = user level for show menu exxtended or no
     '''
-    str='📃Cписок текущих Админов:\n'
+    rstr='📃Cписок текущих Админов:\n'
     for user_id, names in sts.Admins.items(): #FIXME: Create pretty output list
         if names[0] == None and names[1]: #No nickname return first_name
-            str = str + f"{names[1]} \n"
+            rstr = rstr + f"{names[1]} \n"
         elif names[1] == None: #No firstname No nickname return user_id
-            str = str + f"{user_id} \n"
+            rstr = rstr + f"{user_id} \n"
         elif names[0]:
-            str = str + f"{names[0]} \n"
+            rstr = rstr + f"{names[0]} \n"
         else:
             logging.debug(f"No Admins in dict!:")
             return False
 
-    await event.respond(str)
+    await event.respond(rstr)
     await create_admin_menu(0, event)
 
 async def check_nickname(username):
@@ -637,7 +637,7 @@ async def main_frontend():
             async with dbm.DatabaseBot(sts.db_name) as db:
                 res = await db.db_del_admins(admin_id_delete)
             logging.info(f'All:{sts.Admins} admin_id_delete:_{admin_id_delete}_')
-            sts.Admins.pop(int(admin_id_delete))
+            sts.Admins.pop(str(admin_id_delete))
             await event_bot_choice.respond(f"🏁Админ {admin_id_delete} удален🏁")
             await create_admin_menu(0, event_bot_choice)
     return bot

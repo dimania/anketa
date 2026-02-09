@@ -118,7 +118,7 @@ def main():
     ss2={}
     ss2['u_id2'] = 'u_nick2','u_fname2'
     ss3={}
-    ss3k='u_id3'
+    ss3k='12345'
     ss3_0='u_nick3'
     ss3_1='u_fname3'
 
@@ -135,7 +135,9 @@ def main():
 
     print(f"Update ss to ss2 ss3 ->{ss} {len(ss)}")
 
-    ss.pop(ss3k)
+    aa='12345'
+    bb=str(aa)
+    #ss.pop(str(aa))
 
     print(f"After pop ss->{ss} {len(ss)}")
 
@@ -182,8 +184,8 @@ def main():
     qlist = [item.strip() for item in text_content.split('\n')]
     qlist = list(filter(None, qlist))
     i=0
-    for str in qlist:
-        print(f"[{i}]{str}")
+    for string in qlist:
+        print(f"[{i}]{string}")
         i=i+1
 
 
