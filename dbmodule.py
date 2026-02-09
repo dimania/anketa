@@ -145,22 +145,24 @@ class DatabaseBot:
         else: 
             return False
 
-    async def db_add_admins(self, nicknames):
-        ''' Add admin in database for Array nicknames'''
+    async def db_add_admins(self, new_admins):
+        ''' Add admin in database 
+            new_admin - dict key - user_id, vals - array [nickname][firstname]
+        '''
         cur_date = datetime.now()
         
         #add new admins
-        for admin in nicknames:
-            cursor = await self.db_modify("INSERT INTO Admins (admin, date) VALUES(?, ? )",\
-                                    ( admin, cur_date ))
+        for admin_id, names in new_admins.items():
+            cursor = await self.db_modify("INSERT INTO Admins (admin_id, admin_nickname, admin_firstname date) VALUES(?, ?, ?, ? )",\
+                                    ( admin_id,  names[0],  names[1], cur_date ))
         if cursor: 
             return str(cursor.lastrowid)
         else:
             return False
          
-    async def db_del_admins(self, nickname):
-        ''' Remove admin from database for  nickname'''
-        cursor = await self.dbm.execute("DELETE FROM Admins WHERE admin = ?", (nickname,))
+    async def db_del_admins(self, admin_id):
+        ''' Remove admin from database for  admin_id'''
+        cursor = await self.dbm.execute("DELETE FROM Admins WHERE admin_id = ?", (admin_id,))
         await self.dbm.commit()
         return await cursor.fetchall()
 
