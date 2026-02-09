@@ -114,23 +114,30 @@ def get_txt_text(filename):
 
 def main():
     ss={}
-    ss['u_id1'] = ['u_nick'],['u_fname']
+    ss['u_id1'] = 'u_nick','u_fname'
     ss2={}
-    ss2['u_id2'] = ['u_nick2'],['u_fname2']
+    ss2['u_id2'] = 'u_nick2','u_fname2'
     ss3={}
-    ss3k='u_id2'
+    ss3k='u_id3'
     ss3_0='u_nick3'
     ss3_1='u_fname3'
 
-    ss3[ss3k]=[ss3_0],[ss3_1]
-    print(f"ss3->{ss3}")
+    ss3[ss3k]=ss3_0,ss3_1
+    print(f"Orig ss->{ss}")
 
-    for user_id,nicks in ss.items():
-        print(f'{user_id}->{nicks[1]}\n')
+    #for user_id,nicks in ss.items():
+    #    print(f'{user_id}->{ nicks[1] }\n')
 
     #ss.clear()
     ss.update(ss2)
-    print(f"ss->{ss} {len(ss)}")
+    print(f"Update ss to ss2  ->{ss} {len(ss)}")
+    ss.update(ss3)
+
+    print(f"Update ss to ss2 ss3 ->{ss} {len(ss)}")
+
+    ss.pop(ss3k)
+
+    print(f"After pop ss->{ss} {len(ss)}")
 
     if ss2:
         print('ss2 True')

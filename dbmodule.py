@@ -40,7 +40,7 @@ class DatabaseBot:
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         admin_id TEXT NOT NULL UNIQUE,
         admin_nickname TEXT,
-        admin_firstname TEXT
+        admin_firstname TEXT,
         date TEXT
         )
         ''')
@@ -153,7 +153,7 @@ class DatabaseBot:
         
         #add new admins
         for admin_id, names in new_admins.items():
-            cursor = await self.db_modify("INSERT INTO Admins (admin_id, admin_nickname, admin_firstname date) VALUES(?, ?, ?, ? )",\
+            cursor = await self.db_modify("INSERT INTO Admins (admin_id, admin_nickname, admin_firstname, date) VALUES(?, ?, ?, ? )",\
                                     ( admin_id,  names[0],  names[1], cur_date ))
         if cursor: 
             return str(cursor.lastrowid)

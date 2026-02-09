@@ -94,7 +94,7 @@ async def add_admins(event):
                         #usernames.append(peer.first_name)
                         #users_id_list.append(peer.user_id)
                         #nicknames.append(peer.username)
-                        new_admins[peer.user_id]=[peer.username],[peer.first_name]
+                        new_admins[peer.user_id]=peer.username,peer.first_name
 
                     bot.remove_event_handler(on_requested_peer_user)
                     if new_admins:
@@ -147,7 +147,7 @@ async def del_admins(event):
                 i=i+1
                 continue
             bdata=bdata_id+str(admin_id)
-            button.append([ Button.inline(f'{cur_admin[1]} {cur_admin[0]}', bdata)])
+            button.append([ Button.inline(f'Ид: {admin_id} Имя: {cur_admin[1]} Ник: {cur_admin[0]}', bdata)])
     else:
            await event.respond("⚠️Нет админов для удаления.")
            await create_admin_menu(0,event)
@@ -162,7 +162,7 @@ async def show_admins(event):
         level = user level for show menu exxtended or no
     '''
     str='📃Cписок текущих Админов:\n'
-    for user_id, names in sts.Admins:
+    for user_id, names in sts.Admins.items(): #FIXME: Create pretty output list
         if names[0] == None and names[1]: #No nickname return first_name
             str = str + f"{names[1]} \n"
         elif names[1] == None: #No firstname No nickname return user_id
@@ -170,7 +170,7 @@ async def show_admins(event):
         elif names[0]:
             str = str + f"{names[0]} \n"
         else:
-            logging.debug(f"No Admins in dict!: {sts.Admin}")
+            logging.debug(f"No Admins in dict!:")
             return False
 
     await event.respond(str)
@@ -185,7 +185,7 @@ async def check_nickname(username):
         logging.debug(f"User ID: {entity.id}")
         logging.debug(f"First Name: {entity.first_name}")
         logging.debug(f"Username-nickname: {entity.username}")
-        res[entity.id]=[entity.username],[entity.first_name]
+        res[entity.id]=entity.username,entity.first_name
         return res
     except ValueError:
         # Возникает, если Telethon не нашел сущность (обычно если ника нет)
@@ -575,7 +575,7 @@ async def main_frontend():
 
 
         if event_bot.message.message == '/start':
-            if nickname in sts.Admins:
+            if id_user in sts.Admins.keys():
                 #await event_bot.respond("You are admin!")
                 await create_admin_menu(0, event_bot)
             else:
@@ -605,7 +605,7 @@ async def main_frontend():
         logging.debug(f"Get callback event for user[{id_user}] {event_bot_choice}")
        
         # If user not Admin ignore button actions  
-        if nickname not in sts.Admins: return 0
+        if id_user not in sts.Admins.keys(): return 0
 
         button_data = event_bot_choice.data.decode()
         #await event_bot.delete()
@@ -636,7 +636,8 @@ async def main_frontend():
             admin_id_delete = data.replace('DEL_ADMIN_', '')
             async with dbm.DatabaseBot(sts.db_name) as db:
                 res = await db.db_del_admins(admin_id_delete)
-            sts.Admins.pop(admin_id_delete)
+            logging.info(f'All:{sts.Admins} admin_id_delete:_{admin_id_delete}_')
+            sts.Admins.pop(int(admin_id_delete))
             await event_bot_choice.respond(f"🏁Админ {admin_id_delete} удален🏁")
             await create_admin_menu(0, event_bot_choice)
     return bot
@@ -657,8 +658,8 @@ async def main():
     else:
         sts.Admins.clear()
         sts.Admins.update(ret)
-        print(f'Admin with nickname: {sts.Admins}')
-        exit(-1)
+        #print(f'Admin with nickname: {sts.Admins}')
+        #sexit(-1)
 
 
     async with dbm.DatabaseBot(sts.db_name) as db:
@@ -670,10 +671,11 @@ async def main():
         if rows:
             for row in rows:
                 #sts.Admins.append(dict(row).get('admin'))
-                adm[dict(row).get('admin_id')]=[admin_nickname],[admin_firstname]
+                adm[dict(row).get('admin_id')]=dict(row).get('admin_nickname'),dict(row).get('admin_firstname')
         sts.Admins.update(adm)
 
-        logging.info(f"Get Admins from db: {adm}")
+        logging.info(f"Get Admins from db: {adm}\n")
+        logging.info(f'All:{sts.Admins}\n')
 
     if new_questions:
         all_questions[:] = new_questions
