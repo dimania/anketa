@@ -39,9 +39,9 @@ session_bot='nnmbot_session_bot'
 bot_name = 'anketa_bot'
 
 #Admins array 
-#Default admin user. Must be added to channel as admin 
-# Example: Admins = ['admin_nickname1','admin_nickname2' ]
-Admins = ['admin_nickname']
+#Default admin user. 
+# Example: Admin = admin_nickname1
+Admin = 'admin_nickname'
 
 # filename database - better use full path
 db_name = 'database.db'  # database name, better set full path

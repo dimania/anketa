@@ -39,7 +39,8 @@ cursor = None
 connection = None
 ses_bot_str = None
 all_questions = None
-Admins = []
+Admins = {}
+Admin = None
 
 
 def get_config(config=cfg):
@@ -62,6 +63,7 @@ def get_config(config=cfg):
     global ses_bot_str
     global all_questions
     global Admins
+    global Admin
 
     cursor = None
     connection = None
@@ -73,7 +75,7 @@ def get_config(config=cfg):
         logfile = config.logfile
         use_proxy = config.use_proxy
         log_level = config.log_level
-        Admins[:] = config.Admins      
+        Admin = config.Admin      
         
         # May be comment out in config.py
         if 'API_ID' in vars(config):

@@ -70,35 +70,43 @@ async def add_admins(event):
     @bot.on(events.Raw(types=UpdateNewMessage))
     async def on_requested_peer_user(event_select):
         logging.debug(f"Get select user event:{event_select}")
-        #users_id_list=[] 
-        #usernames=[]
+        users_id_list=[] 
+        usernames=[]
         nicknames=[]
         text_reply=''
+        new_admins={}
+
 
         try:
             if event_select.message.action.peers[0].__class__.__name__ == "RequestedPeerUser":
                 button_id = event_select.message.action.button_id
                 if button_id == 1:
                     for peer in event_select.message.action.peers:
-                        if peer.username in sts.Admins:
-                           text_reply=text_reply+f"⚠️{peer.username} уже админ!\n"
+                        if peer.user_id in sts.Admins.keys():
+                           text_reply=text_reply+f"⚠️{peer.username} {peer.first_name} уже админ!\n"
                            continue
-                        if peer.username == None:
-                           text_reply=text_reply+f"⚠️{peer.first_name} не имеет nickname!\n"
-                           continue 
+                        #if peer.username in sts.Admins:
+                        #   text_reply=text_reply+f"⚠️{peer.username} уже админ!\n"
+                        #   continue
+                        #if peer.username == None:
+                        #   text_reply=text_reply+f"⚠️{peer.first_name} не имеет nickname!\n"
+                        #   continue 
                         #usernames.append(peer.first_name)
                         #users_id_list.append(peer.user_id)
-                        nicknames.append(peer.username)
+                        #nicknames.append(peer.username)
+                        new_admins[peer.user_id]=[peer.username],[peer.first_name]
+
                     bot.remove_event_handler(on_requested_peer_user)
-                    if nicknames:
-                        logging.debug(f"Get selected users:{nicknames}")
+                    if new_admins:
+                        logging.debug(f"Get selected users:{new_admins}")
                         # Add new admins in DB
                         async with dbm.DatabaseBot(sts.db_name) as db:
-                            ret = await db.db_add_admins(nicknames)
+                            ret = await db.db_add_admins(new_admins)
                         if ret:
                             #Update current list of admins
-                            for nik in nicknames:
-                                sts.Admins.append(nik)
+                            #for nik in nicknames:
+                            #    sts.Admins.append(nik)
+                            sts.Admins.update(new_admins)
                             text_reply=text_reply+f"🏁Администраторы добавлены🏁"
                         else:
                             text_reply=f"🏁Ошибка добавления админа🏁"
@@ -134,12 +142,12 @@ async def del_admins(event):
    
     if len(sts.Admins) > 1:
         message="❌ Выберете админа для удаления:"        
-        for cur_admin in sts.Admins:
+        for admin_id, cur_admin in sts.Admins.items():
             if i == 0: 
                 i=i+1
                 continue
-            bdata=bdata_id+str(cur_admin)
-            button.append([ Button.inline(cur_admin, bdata)])
+            bdata=bdata_id+str(admin_id)
+            button.append([ Button.inline(f'{cur_admin[1]} {cur_admin[0]}', bdata)])
     else:
            await event.respond("⚠️Нет админов для удаления.")
            await create_admin_menu(0,event)
@@ -147,7 +155,6 @@ async def del_admins(event):
     
     await event.respond(message, buttons=button)    
     return True
-   
 
 async def show_admins(event):
     ''' Show current admins
@@ -155,20 +162,31 @@ async def show_admins(event):
         level = user level for show menu exxtended or no
     '''
     str='📃Cписок текущих Админов:\n'
-    for admin in sts.Admins:
-        str = str + f"{admin} \n"
-    
+    for user_id, names in sts.Admins:
+        if names[0] == None and names[1]: #No nickname return first_name
+            str = str + f"{names[1]} \n"
+        elif names[1] == None: #No firstname No nickname return user_id
+            str = str + f"{user_id} \n"
+        elif names[0]:
+            str = str + f"{names[0]} \n"
+        else:
+            logging.debug(f"No Admins in dict!: {sts.Admin}")
+            return False
+
     await event.respond(str)
     await create_admin_menu(0, event)
 
-    pass
-
 async def check_nickname(username):
+    res = {}
     try:
         # Пытаемся получить информацию о пользователе/канале по нику
         entity = await bot.get_entity(username)
-        logging.debug(f"Nickname [{username}] ok. Object type is: {type(entity).__name__}")
-        return True
+        #logging.debug(f"Nickname [{username}] ok. Object type is: {type(entity).__name__}")
+        logging.debug(f"User ID: {entity.id}")
+        logging.debug(f"First Name: {entity.first_name}")
+        logging.debug(f"Username-nickname: {entity.username}")
+        res[entity.id]=[entity.username],[entity.first_name]
+        return res
     except ValueError:
         # Возникает, если Telethon не нашел сущность (обычно если ника нет)
         logging.debug(f"Nickname [{username}] not found ")
@@ -615,11 +633,11 @@ async def main_frontend():
         elif  'DEL_ADMIN_' in button_data:
             # Delete admin
             data = button_data
-            admin_nickname_delete = data.replace('DEL_ADMIN_', '')
+            admin_id_delete = data.replace('DEL_ADMIN_', '')
             async with dbm.DatabaseBot(sts.db_name) as db:
-                res = await db.db_del_admins(admin_nickname_delete)
-            sts.Admins.remove(admin_nickname_delete)
-            await event_bot_choice.respond(f"🏁Админ {admin_nickname_delete} удален🏁")
+                res = await db.db_del_admins(admin_id_delete)
+            sts.Admins.pop(admin_id_delete)
+            await event_bot_choice.respond(f"🏁Админ {admin_id_delete} удален🏁")
             await create_admin_menu(0, event_bot_choice)
     return bot
 
@@ -628,22 +646,34 @@ async def main():
 
     print("Start anketa Bot...")
     
-    for admin in sts.Admins:
-        if not await check_nickname(admin):
-            logging.error(f'Admin with nickname: {admin} Not exist in Telegram! Check config file!')
-            print(f'Admin with nickname: {admin} Not exist in Telegram! Check config file!')
-            exit(-1)
+    # Check for Admin and get user_id, clear and create new dict Admins for 
+    # full data about Admin
+   
+    ret = await check_nickname(sts.Admin)
+    if not ret:
+        logging.error(f'Admin with nickname: {sts.Admin} Not exist in Telegram! Check config file!')
+        print(f'Admin with nickname: {sts.Admin} Not exist in Telegram! Check config file!')
+        exit(-1)
+    else:
+        sts.Admins.clear()
+        sts.Admins.update(ret)
+        print(f'Admin with nickname: {sts.Admins}')
+        exit(-1)
+
 
     async with dbm.DatabaseBot(sts.db_name) as db:
         logging.debug('Create db if not exist.')
         await db.db_create()
         new_questions = await db.db_load_questions()
         rows = await db.db_load_admins()
+        adm = {}
         if rows:
             for row in rows:
-                sts.Admins.append(dict(row).get('admin'))
+                #sts.Admins.append(dict(row).get('admin'))
+                adm[dict(row).get('admin_id')]=[admin_nickname],[admin_firstname]
+        sts.Admins.update(adm)
 
-        logging.info(f"Get questions from db: {new_questions}")
+        logging.info(f"Get Admins from db: {adm}")
 
     if new_questions:
         all_questions[:] = new_questions

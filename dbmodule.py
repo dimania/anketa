@@ -38,7 +38,9 @@ class DatabaseBot:
         await self.dbm.execute('''
         CREATE TABLE IF NOT EXISTS Admins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        admin TEXT NOT NULL UNIQUE,
+        admin_id TEXT NOT NULL UNIQUE,
+        admin_nickname TEXT,
+        admin_firstname TEXT
         date TEXT
         )
         ''')
@@ -134,7 +136,7 @@ class DatabaseBot:
     async def db_load_admins(self):
         ''' Load all question in Array '''
         new_admins=[]
-        cursor = await self.dbm.execute("SELECT admin, date FROM Admins")
+        cursor = await self.dbm.execute("SELECT admin_id, admin_nickname, admin_firstname, date FROM Admins")
         rows = await cursor.fetchall()
         logging.debug(f"Get questions rows: {rows}")
 

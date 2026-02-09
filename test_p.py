@@ -113,12 +113,30 @@ def get_txt_text(filename):
     return text
 
 def main():
+    ss={}
+    ss['u_id1'] = ['u_nick'],['u_fname']
+    ss2={}
+    ss2['u_id2'] = ['u_nick2'],['u_fname2']
+    ss3={}
+    ss3k='u_id2'
+    ss3_0='u_nick3'
+    ss3_1='u_fname3'
 
-    ss = ['hhh']
-    if ss:
-         print("ss true")
+    ss3[ss3k]=[ss3_0],[ss3_1]
+    print(f"ss3->{ss3}")
+
+    for user_id,nicks in ss.items():
+        print(f'{user_id}->{nicks[1]}\n')
+
+    #ss.clear()
+    ss.update(ss2)
+    print(f"ss->{ss} {len(ss)}")
+
+    if ss2:
+        print('ss2 True')
     else:
-        print("ss False")
+        print('ss2 false')
+
 
     exit(0)
 
