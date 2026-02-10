@@ -51,6 +51,17 @@ class DatabaseBot:
         date TEXT
         )
         ''')
+
+        await self.dbm.execute('''
+        CREATE TABLE IF NOT EXISTS VariantsA (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        variant_id INT,                     
+        variant TEXT NOT NULL,
+        date TEXT,
+        FOREIGN KEY (variant_id) REFERENCES Questions(id) ON DELETE CASCADE
+        )
+        ''')
+
         # Ctreate table Answers
         await self.dbm.execute('''
         CREATE TABLE IF NOT EXISTS Answers (

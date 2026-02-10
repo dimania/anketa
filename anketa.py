@@ -242,7 +242,10 @@ async def get_excel_text(filename, sheet_name=0):
     try:
         df = pd.read_excel(filename, sheet_name=sheet_name, header=None )
         # Convert the DataFrame to a string representation (e.g., for printing or writing to a text file)
-        return df.to_string(index=False,header=False,justify='left')
+        #return df.to_string(index=False,header=False,justify='left')
+        res=df.to_dict(orient='dict') 
+        print(res)
+        return res
     except Exception as e:
         logging.warning(f"Error reading Excel file: {e}")
         return False
@@ -485,6 +488,8 @@ async def get_qusetion_data(event_bot):
             #with open(download_path, 'r', encoding="utf-8") as file:
             #    new_questions = [line.strip() for line in file.readlines()]
             new_questions = await get_new_questions(download_path)
+            print(f'New all_questions: {new_questions}')
+            exit(-1)
             if not new_questions:
                 await event_bot.respond("⚠️Данный формат файла не поддерживается!")
                 bot.remove_event_handler(bot_handler_f_bot)
