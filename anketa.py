@@ -94,7 +94,7 @@ async def add_admins(event):
                         #usernames.append(peer.first_name)
                         #users_id_list.append(peer.user_id)
                         #nicknames.append(peer.username)
-                        new_admins[peer.user_id]=peer.username,peer.first_name
+                        new_admins[int(peer.user_id)]=peer.username,peer.first_name
 
                     bot.remove_event_handler(on_requested_peer_user)
                     if new_admins:
@@ -138,6 +138,7 @@ async def del_admins(event):
     bdata_id='DEL_ADMIN_'
     button=[]
     i=0
+    admin_name=''
     logging.debug(f"Len Admins: {len(sts.Admins)}")
    
     if len(sts.Admins) > 1:
@@ -147,7 +148,13 @@ async def del_admins(event):
                 i=i+1
                 continue
             bdata=bdata_id+str(admin_id)
-            button.append([ Button.inline(f'Ид: {admin_id} Имя: {cur_admin[1]} Ник: {cur_admin[0]}', bdata)])
+            if cur_admin[1]:
+                admin_name = cur_admin[1]
+            elif cur_admin[0]: 
+                admin_name = cur_admin[0]
+            else:
+                admin_name ='Noname'
+            button.append([ Button.inline(f'👮 {admin_name} ({admin_id})', bdata)])
     else:
            await event.respond("⚠️Нет админов для удаления.")
            await create_admin_menu(0,event)
@@ -161,17 +168,26 @@ async def show_admins(event):
         event = bot event handled id
         level = user level for show menu exxtended or no
     '''
-    rstr='📃Cписок текущих Админов:\n'
-    for user_id, names in sts.Admins.items(): #FIXME: Create pretty output list
-        if names[0] == None and names[1]: #No nickname return first_name
-            rstr = rstr + f"{names[1]} \n"
-        elif names[1] == None: #No firstname No nickname return user_id
-            rstr = rstr + f"{user_id} \n"
-        elif names[0]:
-            rstr = rstr + f"{names[0]} \n"
+    Builtin_Admin='💂‍♂️'
+    Simply_Admin='👮'
+
+    i=True
+
+    admin_name=''
+    rstr='📃Cписок текущих Админов:\n\n'
+    for admin_id, cur_admin in sts.Admins.items(): 
+        if cur_admin[1]:
+            admin_name = cur_admin[1]
+        elif cur_admin[0]: 
+            admin_name = cur_admin[0]
         else:
-            logging.debug(f"No Admins in dict!:")
-            return False
+            admin_name ='Noname'
+
+        if i:
+            rstr=rstr+f'{Builtin_Admin} {admin_name} ({admin_id})\n'
+            i=False
+        else:
+             rstr=rstr+f'{Simply_Admin} {admin_name} ({admin_id})\n'
 
     await event.respond(rstr)
     await create_admin_menu(0, event)
@@ -566,12 +582,12 @@ async def main_frontend():
         menu_level = 0
       
         id_user = event_bot.message.peer_id.user_id
-        logging.info(f"LOGIN USER_ID:{event_bot.message.peer_id.user_id}")
-        user_ent = await bot.get_entity(id_user)
-        nickname = user_ent.username
+        logging.info(f"LOGIN USER_ID:{id_user}")
+        #user_ent = await bot.get_entity(id_user)
+        #nickname = user_ent.username
         #first_name = user_ent.first_name
         
-        logging.debug(f"Get username for id {id_user}: {nickname}")
+        #logging.debug(f"Get username for id {id_user}: {nickname}")
 
 
         if event_bot.message.message == '/start':
@@ -633,11 +649,11 @@ async def main_frontend():
         elif  'DEL_ADMIN_' in button_data:
             # Delete admin
             data = button_data
-            admin_id_delete = data.replace('DEL_ADMIN_', '')
+            admin_id_delete = int(data.replace('DEL_ADMIN_', ''))
             async with dbm.DatabaseBot(sts.db_name) as db:
                 res = await db.db_del_admins(admin_id_delete)
             logging.info(f'All:{sts.Admins} admin_id_delete:_{admin_id_delete}_')
-            sts.Admins.pop(str(admin_id_delete))
+            sts.Admins.pop(admin_id_delete)
             await event_bot_choice.respond(f"🏁Админ {admin_id_delete} удален🏁")
             await create_admin_menu(0, event_bot_choice)
     return bot

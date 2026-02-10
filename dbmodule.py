@@ -38,7 +38,7 @@ class DatabaseBot:
         await self.dbm.execute('''
         CREATE TABLE IF NOT EXISTS Admins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        admin_id TEXT NOT NULL UNIQUE,
+        admin_id INT NOT NULL UNIQUE,
         admin_nickname TEXT,
         admin_firstname TEXT,
         date TEXT
