@@ -139,6 +139,7 @@ async def del_admins(event):
     button=[]
     i=0
     admin_name=''
+    admin_nickname=''
     logging.debug(f"Len Admins: {len(sts.Admins)}")
    
     if len(sts.Admins) > 1:
@@ -150,11 +151,14 @@ async def del_admins(event):
             bdata=bdata_id+str(admin_id)
             if cur_admin[1]:
                 admin_name = cur_admin[1]
+                if cur_admin[0]: admin_nickname = f'@{cur_admin[0]}'
             elif cur_admin[0]: 
                 admin_name = cur_admin[0]
             else:
                 admin_name ='Noname'
-            button.append([ Button.inline(f'👮 {admin_name} ({admin_id})', bdata)])
+
+            button.append([ Button.inline(f'👮 {admin_name} {admin_nickname} ({admin_id})', bdata)])
+            admin_nickname =''
     else:
            await event.respond("⚠️Нет админов для удаления.")
            await create_admin_menu(0,event)
@@ -174,20 +178,24 @@ async def show_admins(event):
     i=True
 
     admin_name=''
+    admin_nickname=''
     rstr='📃Cписок текущих Админов:\n\n'
     for admin_id, cur_admin in sts.Admins.items(): 
         if cur_admin[1]:
             admin_name = cur_admin[1]
+            if cur_admin[0]: admin_nickname = f'@{cur_admin[0]}'
         elif cur_admin[0]: 
-            admin_name = cur_admin[0]
+            admin_name = f'@{cur_admin[0]}'
         else:
             admin_name ='Noname'
 
         if i:
-            rstr=rstr+f'{Builtin_Admin} {admin_name} ({admin_id})\n'
+            rstr=rstr+f'{Builtin_Admin} {admin_name} {admin_nickname} ({admin_id})\n'
             i=False
+            admin_nickname = ''
         else:
-             rstr=rstr+f'{Simply_Admin} {admin_name} ({admin_id})\n'
+             rstr=rstr+f'{Simply_Admin} {admin_name} {admin_nickname} ({admin_id})\n'
+             admin_nickname = ''
 
     await event.respond(rstr)
     await create_admin_menu(0, event)
@@ -666,10 +674,10 @@ async def main():
     # Check for Admin and get user_id, clear and create new dict Admins for 
     # full data about Admin
    
-    ret = await check_nickname(sts.Admin)
+    ret = await check_nickname(sts.Builtin_admin)
     if not ret:
-        logging.error(f'Admin with nickname: {sts.Admin} Not exist in Telegram! Check config file!')
-        print(f'Admin with nickname: {sts.Admin} Not exist in Telegram! Check config file!')
+        logging.error(f'Admin with nickname: {sts.Builtin_admin} Not exist in Telegram! Check config file!')
+        print(f'Admin with nickname: {sts.Builtin_admin} Not exist in Telegram! Check config file!')
         exit(-1)
     else:
         sts.Admins.clear()
