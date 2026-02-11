@@ -117,13 +117,28 @@ class DatabaseBot:
     async def db_rewrite_new_questions(self, questions):
         ''' Rewrite question on database from Array '''
         cur_date = datetime.now()
-        #clear Table Questions
+        #clear Previous Tables
         cursor = await self.dbm.execute("DELETE FROM Questions")
         cursor = await self.dbm.execute("DELETE FROM Answers")
+        cursor = await self.dbm.execute("DELETE FROM VariantsA")
         #load new questions in the table Questions
         for qst_one in questions:
             cursor = await self.db_modify("INSERT INTO Questions (question, date) VALUES(?, ? )",\
                                     ( qst_one,cur_date ))
+            
+            for variant in questions.get(qst_one):
+                 if variant:
+                    cursor = await self.db_modify("INSERT INTO VariantsA (variant, date) VALUES(?, ? )",\
+                                    ( variant,cur_date ))
+                    
+               
+            
+        #for key in list_q:
+        #print(f'{key}:\n')
+        #for val in list_q.get(key):
+        #    print(f'{val} ')
+
+
         if cursor: 
             return str(cursor.lastrowid)
         else:

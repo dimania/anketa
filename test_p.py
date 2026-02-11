@@ -17,6 +17,9 @@ from datetime import datetime
 import filetype
 import docx
 import pandas as pd
+import numpy as np
+import math
+
 
 def is_text_file(filename, blocksize=512):
     """
@@ -72,7 +75,8 @@ def get_excel_text(filename, sheet_name=0):
     try:
         df = pd.read_excel(filename, sheet_name=sheet_name, header=None )
         # Convert the DataFrame to a string representation (e.g., for printing or writing to a text file)
-        return df.to_string(index=False,header=False,justify='left')
+        #return df.to_string(index=False,header=False,justify='left')
+        return df.to_dict(orient='split', index=False)
     except Exception as e:
         return f"Error reading Excel file: {e}"
 
@@ -123,33 +127,35 @@ def main():
     ss3_1='u_fname3'
 
     ss3[ss3k]=ss3_0,ss3_1
-    print(f"Orig ss->{ss}")
+    #print(f"Orig ss->{ss}")
 
     #for user_id,nicks in ss.items():
     #    print(f'{user_id}->{ nicks[1] }\n')
 
     #ss.clear()
     ss.update(ss2)
-    print(f"Update ss to ss2  ->{ss} {len(ss)}")
+    #print(f"Update ss to ss2  ->{ss} {len(ss)}")
     ss.update(ss3)
 
-    print(f"Update ss to ss2 ss3 ->{ss} {len(ss)}")
+    #print(f"Update ss to ss2 ss3 ->{ss} {len(ss)}")
 
     aa='12345'
     bb=str(aa)
     #ss.pop(str(aa))
 
-    print(f"After pop ss->{ss} {len(ss)}")
+    #print(f"After pop ss->{ss} {len(ss)}")
 
     if ss2:
-        print('ss2 True')
+        #print('ss2 True')
+        pass
     else:
-        print('ss2 false')
+        #print('ss2 false')
+        pass
 
 
-    exit(0)
+    
 
-    filename='test_formats/Анкета.docx'
+    filename='questionfiles/Анкета2.xls'
     
     root,ext = os.path.splitext(filename)
     
@@ -176,12 +182,35 @@ def main():
         print(text_content)
     elif kind.extension == 'xlsx' or kind.extension == 'xls':
         text_content = get_excel_text(filename)
-        print(text_content)
+        #print(text_content)
     
     
     print("-------------------------------")
-    
-    qlist = [item.strip() for item in text_content.split('\n')]
+    list_q={}
+    val=[]
+    for item in text_content['data']:
+        #item - one question and variants answers if exist
+        nan_list=pd.isna(item)
+        i=False
+        # variants answer to list values dict        
+        for x, y in zip(item,nan_list):
+            if not y and i:
+                val.append(x) 
+            i=True
+        
+        list_q[item[0]]=val
+        val=[]
+    print(list_q)
+
+    for key in list_q:
+        print(f'{key}:\n')
+        for val in list_q.get(key):
+            print(f'{val} ')
+
+    exit(0)
+
+
+    qlist = [item.strip() for item in text_content.split('\n')]    
     qlist = list(filter(None, qlist))
     i=0
     for string in qlist:

@@ -314,9 +314,24 @@ async def get_new_questions(filename):
     elif kind.extension == 'xlsx' or kind.extension == 'xls':
         text_content = await get_excel_text(filename)
         logging.debug(f'Xlsx or xls content is:{text_content}')
+    
+    qlist={}
+    val=[]
+    for item in text_content['data']:
+        #item - one question and variants answers if exist
+        nan_list=pd.isna(item)
+        i=False
+        # variants answer to list values dict        
+        for x, y in zip(item,nan_list):
+            if not y and i:
+                val.append(x) 
+            i=True
+        
+        qlist[item[0]]=val
+        val=[]
 
-    qlist = [item.strip() for item in text_content.split('\n')]
-    qlist = list(filter(None, qlist))
+    #qlist = [item.strip() for item in text_content.split('\n')]
+    #qlist = list(filter(None, qlist))
     return qlist
 
 async def create_admin_menu(level, event):
@@ -473,9 +488,11 @@ async def get_qusetion_data(event_bot):
     await event_bot.respond(\
     "📎 Загрузите файл с вопросами.\n\n" \
     "Поддержиаются следующие типы файлов:\n" \
-    "🔹Текстовый файл (txt) по одному вопросу на строке\n" \
-    "🔹MS Word файл (docx) по одному вопросу на строке\n" \
+    #"🔹Текстовый файл (txt) по одному вопросу на строке\n" \
+    #"🔹MS Word файл (docx) по одному вопросу на строке\n" \
     "🔹MS Excel файл (xls,xlsx) по одному вопросу в ячейке в первой колонке\n" \
+    "🔹варианты ответов в следующих за вопросом колонках\n" \
+    "🔹если нет варианта ответа - ответ вводит опрашиваемый\n" \
     "⚠️ Старый формат MS word (doc) не поддерживается!\n" \
     "\n♨️ Текущие вопросы и ответы будут удалены!")
 
@@ -488,14 +505,12 @@ async def get_qusetion_data(event_bot):
             #with open(download_path, 'r', encoding="utf-8") as file:
             #    new_questions = [line.strip() for line in file.readlines()]
             new_questions = await get_new_questions(download_path)
-            print(f'New all_questions: {new_questions}')
-            exit(-1)
             if not new_questions:
                 await event_bot.respond("⚠️Данный формат файла не поддерживается!")
                 bot.remove_event_handler(bot_handler_f_bot)
                 await create_admin_menu(0, event_bot)
                 return False   
-            all_questions[:]=new_questions
+            all_questions.update(new_questions)
             logging.info(f'New all_questions: {all_questions}')
             async with dbm.DatabaseBot(sts.db_name) as db:
                 await db.db_rewrite_new_questions(all_questions)
@@ -718,7 +733,12 @@ sts.get_config()
 # Enable logging
 
 # Init default questions
-all_questions = ["text_q1","text_q2","text_q3","text_q4","text_q5"]
+all_questions = {   "text_q1":[],
+                    "text_q2":['variant1','variant2'],
+                    "text_q3":['variant1'],
+                    "text_q4":['variant1','variant2','variant3'],
+                    "text_q5":[]
+                }
 
 filename=os.path.join(os.path.dirname(sts.logfile),os.path.basename(sts.logfile))
 logging.basicConfig(level=sts.log_level, filename=filename, filemode="a", format="%(asctime)s %(levelname)s %(message)s")
