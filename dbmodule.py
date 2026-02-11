@@ -115,7 +115,7 @@ class DatabaseBot:
         else:
             return None
     
-    async def db_rewrite_new_questions(self, questions):
+    async def db_rewrite_new_questions(self, questions):#FIXME dont write variants
         ''' Rewrite question on database from Array '''
         cur_date = datetime.now()
         #clear Previous Tables
@@ -145,19 +145,19 @@ class DatabaseBot:
         val=[]
         cursor = await self.dbm.execute("SELECT id, question FROM Questions")
         rows = await cursor.fetchall()
-        logging.debug(f"Get questions rows: {rows}")
+        logging.debug(f"Get questions len: {len(rows)}")
 
         if not rows: return False
 
         for row in rows:
             cursor = await self.dbm.execute("SELECT variant FROM VariantsA Where question_id = ?", (dict(row).get('id'),))
             rows_var = await cursor.fetchall()
-           
+
             for variant in rows_var:
                 # variants answer to list values dict        
                 val.append(variant) 
                 
-            new_questions[row]=val
+            new_questions[dict(row).get('question')]=val
             val=[]
 
         logging.info(f"Get questions from db: {new_questions}")

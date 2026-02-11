@@ -260,7 +260,7 @@ async def get_word_text(filename): #NOTUSE now
     # Join paragraphs with a newline character
     return '\n'.join(full_text)
 
-async def get_oldword_text(filename): #FIXME It`s dont work
+async def get_oldword_text(filename): #FIXME It`s dont work. NOTUSE now
     """
     Extracts all text from old a .doc file.
     """
@@ -560,17 +560,31 @@ async def run_anketa(id_user, event_bot, menu):
     nickname = user_ent.username
     first_name = user_ent.first_name
     question_id=0
-    
+    button=[]
+    bdata=''
+    v=1
     await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n\n")
 
     async with bot.conversation(id_user) as conv:
-        for cur_question  in all_questions: 
-            await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
-            response = await conv.get_response()
-            resp_text = response.text
-            logging.info(f"Get respond text: {question_id} : {resp_text}")
-            async with dbm.DatabaseBot(sts.db_name) as db:     
-                await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
+        for cur_question  in all_questions:
+            if not all_questions.get(cur_question):
+                await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
+                response = await conv.get_response()
+                resp_text = response.text
+                logging.info(f"Get respond text: {question_id} : {resp_text}")
+                #async with dbm.DatabaseBot(sts.db_name) as db:     
+                #    await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
+            else:
+                str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
+                for variant in all_questions.get(cur_question):
+                    bdata=f'VARIANT_{question_id}_{v}'
+                    button.append([ Button.inline(f'🔹 {variant})', bdata)])
+                    v=v+1
+                await conv.send_message(str_qst, buttons=button)
+                response = await conv.get_response()
+                resp_text = response.text
+                logging.info(f"Get respond button text: {question_id} : {resp_text}")
+                # write to db
             question_id = question_id + 1
         await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
         conv.cancel()

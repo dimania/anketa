@@ -204,6 +204,10 @@ def main():
 
     for key in list_q:
         print(f'{key}:\n')
+        if list_q.get(key):
+            print('Exist variants')
+        else:
+            print('Not Exist variants')
         for val in list_q.get(key):
             print(f'{val} ')
 
