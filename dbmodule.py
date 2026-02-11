@@ -55,10 +55,11 @@ class DatabaseBot:
         await self.dbm.execute('''
         CREATE TABLE IF NOT EXISTS VariantsA (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        variant_id INT,                     
+        question_id INT,
+        variant_id INT,                                            
         variant TEXT NOT NULL,
         date TEXT,
-        FOREIGN KEY (variant_id) REFERENCES Questions(id) ON DELETE CASCADE
+        FOREIGN KEY (question_id) REFERENCES Questions(id) ON DELETE CASCADE
         )
         ''')
 
@@ -122,23 +123,17 @@ class DatabaseBot:
         cursor = await self.dbm.execute("DELETE FROM Answers")
         cursor = await self.dbm.execute("DELETE FROM VariantsA")
         #load new questions in the table Questions
+        question_id=1
         for qst_one in questions:
             cursor = await self.db_modify("INSERT INTO Questions (question, date) VALUES(?, ? )",\
                                     ( qst_one,cur_date ))
             
             for variant in questions.get(qst_one):
                  if variant:
-                    cursor = await self.db_modify("INSERT INTO VariantsA (variant, date) VALUES(?, ? )",\
-                                    ( variant,cur_date ))
-                    
-               
-            
-        #for key in list_q:
-        #print(f'{key}:\n')
-        #for val in list_q.get(key):
-        #    print(f'{val} ')
-
-
+                    cursor = await self.db_modify("INSERT INTO VariantsA (question_id, variant, date) VALUES(?, ?, ? )",\
+                                    ( question_id, variant, cur_date ))
+            question_id=question_id+1            
+       
         if cursor: 
             return str(cursor.lastrowid)
         else:
@@ -146,15 +141,24 @@ class DatabaseBot:
                         
     async def db_load_questions(self):
         ''' Load all question in Array '''
-        new_questions=[]
-        cursor = await self.dbm.execute("SELECT question FROM Questions")
+        new_questions={}
+        val=[]
+        cursor = await self.dbm.execute("SELECT id, question FROM Questions")
         rows = await cursor.fetchall()
         logging.debug(f"Get questions rows: {rows}")
 
         if not rows: return False
 
         for row in rows:
-            new_questions.append(dict(row).get('question'))
+            cursor = await self.dbm.execute("SELECT variant FROM VariantsA Where question_id = ?", (dict(row).get('id'),))
+            rows_var = await cursor.fetchall()
+           
+            for variant in rows_var:
+                # variants answer to list values dict        
+                val.append(variant) 
+                
+            new_questions[row]=val
+            val=[]
 
         logging.info(f"Get questions from db: {new_questions}")
         return new_questions

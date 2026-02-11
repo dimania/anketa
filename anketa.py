@@ -219,7 +219,7 @@ async def check_nickname(username):
         logging.debug(f"Error check Nickname [{username}] {e}")
         return False
 
-async def is_utf8_text_file(filename):
+async def is_utf8_text_file(filename): #NOTUSE now
     """Checks if a file can be entirely decoded as UTF-8 text."""
     try:
         with open(filename, 'r', encoding='utf-8') as file:
@@ -234,23 +234,21 @@ async def is_utf8_text_file(filename):
         logging.warning(f"An error occurred: {e}")
         return False
 
-async def get_excel_text(filename, sheet_name=0):
+async def get_excel_data(filename, sheet_name=0):
     """
     Reads data from an Excel file into a pandas DataFrame.
     sheet_name can be an integer (0 for the first sheet) or a string ('Sheet1').
     """
     try:
         df = pd.read_excel(filename, sheet_name=sheet_name, header=None )
-        # Convert the DataFrame to a string representation (e.g., for printing or writing to a text file)
-        #return df.to_string(index=False,header=False,justify='left')
-        res=df.to_dict(orient='dict') 
-        print(res)
+        # Convert the DataFrame to dict
+        res=df.to_dict(orient='split', index=False) 
         return res
     except Exception as e:
         logging.warning(f"Error reading Excel file: {e}")
         return False
 
-async def get_word_text(filename):
+async def get_word_text(filename): #NOTUSE now
     """
     Extracts all text from a .docx file.
     """
@@ -274,7 +272,7 @@ async def get_oldword_text(filename): #FIXME It`s dont work
     pass
     return None
     
-async def get_txt_text(filename):
+async def get_txt_text(filename): #NOTUSE now
     '''
     Get data fron text file 
     '''
@@ -298,22 +296,15 @@ async def get_new_questions(filename):
     #logging.debug(f'File extension: {kind.extension}')
     #logging.debug(f'File MIME type: {kind.mime}')
 
-    if ext == '.txt' and await is_utf8_text_file(filename):
-        text_content = await get_txt_text(filename)
-        logging.debug(f'Txt content is:{text_content}')
-    elif kind is None:
+    if kind is None:
         logging.debug(f'Cannot guess file type filename: {filename}!')
         return 1
-    elif kind.extension == 'docx': 
-        text_content = await get_word_text(filename)
-        logging.debug(f'Docx content is:{text_content}')
-    elif kind.extension == 'doc':
-        return False
-        #text_content = get_oldword_text(filename)
-        #logging.debug(f'Doc content is:{text_content}')
     elif kind.extension == 'xlsx' or kind.extension == 'xls':
-        text_content = await get_excel_text(filename)
+        text_content = await get_excel_data(filename)
         logging.debug(f'Xlsx or xls content is:{text_content}')
+    
+    if not text_content:
+        return False
     
     qlist={}
     val=[]
@@ -509,7 +500,8 @@ async def get_qusetion_data(event_bot):
                 await event_bot.respond("⚠️Данный формат файла не поддерживается!")
                 bot.remove_event_handler(bot_handler_f_bot)
                 await create_admin_menu(0, event_bot)
-                return False   
+                return False
+            all_questions.clear()   
             all_questions.update(new_questions)
             logging.info(f'New all_questions: {all_questions}')
             async with dbm.DatabaseBot(sts.db_name) as db:
@@ -591,9 +583,11 @@ async def show_qusetions(event_bot):
     Show all questions
     '''
     i=1
-    message=f"❔ Текущие вопросы:\n"
+    message=f"❔ Текущие вопросы:"
     for qst in all_questions:
-        message = message + f"{i}.{qst}\n"
+        message = message + f"\n{i}.{qst}\n"
+        for variant in all_questions.get(qst):
+           message = message + f"  🔹 {variant}\n" 
         i=i+1
     
     await event_bot.respond(message)
@@ -722,7 +716,8 @@ async def main():
         logging.info(f'All:{sts.Admins}\n')
 
     if new_questions:
-        all_questions[:] = new_questions
+        all_questions.clear()
+        all_questions.update(new_questions)
 
     # Run basic events loop
     await main_frontend()    
