@@ -41,7 +41,7 @@ bot_name = 'anketa_bot'
 #Admins array 
 #Default admin user. 
 # Example: Admin = admin_nickname1
-Admin = 'admin_nickname'
+Builtin_admin = 'admin_nickname'
 
 # filename database - better use full path
 db_name = 'database.db'  # database name, better set full path

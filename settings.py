@@ -40,7 +40,7 @@ connection = None
 ses_bot_str = None
 all_questions = None
 Admins = {}
-Admin = None
+Builtin_admin = None
 
 
 def get_config(config=cfg):
