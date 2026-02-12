@@ -47,6 +47,7 @@ class DatabaseBot:
         await self.dbm.execute('''
         CREATE TABLE IF NOT EXISTS Questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        question_id INT NOT NULL UNIQUE,
         question TEXT NOT NULL,
         date TEXT
         )
@@ -58,10 +59,12 @@ class DatabaseBot:
         question_id INT,
         variant_id INT,                                            
         variant TEXT NOT NULL,
-        date TEXT,
-        FOREIGN KEY (question_id) REFERENCES Questions(id) ON DELETE CASCADE
+        date TEXT
         )
         ''')
+
+        #,
+        #FOREIGN KEY (question_id) REFERENCES Questions(id)
 
         # Ctreate table Answers
         await self.dbm.execute('''
@@ -122,16 +125,18 @@ class DatabaseBot:
         cursor = await self.dbm.execute("DELETE FROM Questions")
         cursor = await self.dbm.execute("DELETE FROM Answers")
         cursor = await self.dbm.execute("DELETE FROM VariantsA")
+        await self.dbm.commit()
         #load new questions in the table Questions
         question_id=1
         for qst_one in questions:
-            cursor = await self.db_modify("INSERT INTO Questions (question, date) VALUES(?, ? )",\
-                                    ( qst_one,cur_date ))
-            
+            cursor = await self.db_modify("INSERT INTO Questions (question_id, question, date) VALUES(?, ?, ? )",\
+                                    ( question_id, qst_one,cur_date ))
+            variant_id=1
             for variant in questions.get(qst_one):
                  if variant:
-                    cursor = await self.db_modify("INSERT INTO VariantsA (question_id, variant, date) VALUES(?, ?, ? )",\
-                                    ( question_id, variant, cur_date ))
+                    cursor = await self.db_modify("INSERT INTO VariantsA (question_id, variant_id, variant, date) VALUES(?, ?, ?, ? )",\
+                                    ( question_id, variant_id, variant, cur_date ))
+                    variant_id=variant_id+1
             question_id=question_id+1            
        
         if cursor: 
@@ -143,19 +148,19 @@ class DatabaseBot:
         ''' Load all question in Array '''
         new_questions={}
         val=[]
-        cursor = await self.dbm.execute("SELECT id, question FROM Questions")
+        cursor = await self.dbm.execute("SELECT question_id, question FROM Questions")
         rows = await cursor.fetchall()
         logging.debug(f"Get questions len: {len(rows)}")
 
         if not rows: return False
 
         for row in rows:
-            cursor = await self.dbm.execute("SELECT variant FROM VariantsA Where question_id = ?", (dict(row).get('id'),))
+            cursor = await self.dbm.execute("SELECT variant FROM VariantsA Where question_id = ?", (dict(row).get('question_id'),))
             rows_var = await cursor.fetchall()
 
-            for variant in rows_var:
+            for row_variant in rows_var:
                 # variants answer to list values dict        
-                val.append(variant) 
+                val.append(dict(row_variant).get('variant')) 
                 
             new_questions[dict(row).get('question')]=val
             val=[]
