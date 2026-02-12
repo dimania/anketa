@@ -62,7 +62,7 @@ class DatabaseBot:
         date TEXT
         )
         ''')
-
+        
         #,
         #FOREIGN KEY (question_id) REFERENCES Questions(id)
 
