@@ -566,6 +566,7 @@ async def run_anketa(id_user, event_bot, menu):
     bdata=''
     v=1
     answ_v=[]
+    answers={}
     await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n\n")
 
     async with bot.conversation(id_user) as conv:
@@ -581,6 +582,7 @@ async def run_anketa(id_user, event_bot, menu):
                     logging.info(f"Get respond text: {question_id} : {resp_text}")
                     #async with dbm.DatabaseBot(sts.db_name) as db:     
                     #    await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
+                    answers[question_id+1]=resp_text
                 else:
                     button.clear()
                     str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
@@ -589,17 +591,24 @@ async def run_anketa(id_user, event_bot, menu):
                         button.append([ Button.inline(f'🔹 {variant}', bdata)])
                         v=v+1
                     await conv.send_message(str_qst, buttons=button)
-                    handle = conv.wait_event(my_press_event(sender_id,timeout=sts.TIMEOUT_FOR_ANSWER))
+                    handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER)
                     event_res = await handle
                     button_pressed = event_res.data.decode('utf-8')
                     answ_v = button_pressed.replace('VARIANT_', '').split('_')
-                    logging.info(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
+                    logging.debug(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
+                    answers[question_id+1]=answ_v[1]
                     # write to db
                 question_id = question_id + 1
-            await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
+            logging.debug(f"Dict All answers: {answers}")
+            async with dbm.DatabaseBot(sts.db_name) as db:     
+                    await db.db_add_answer(id_user, first_name, nickname, answers)
+            await conv.send_message(f"🔆Вы ответили на все вопросы.\n"\
+                                    "результаты сохранены.\n"
+                                    "Для повторного прохождения опроса\n"\
+                                    "нажмите кнопку Start\n")
         except TimeoutError as error:
-            logging.info(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question} ")
-            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} на ответ истекло.\n"\
+            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question} ")
+            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
                                     "Для этого нажмите кнопку Start\n")
