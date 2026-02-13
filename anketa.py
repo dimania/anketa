@@ -575,7 +575,7 @@ async def run_anketa(id_user, event_bot, menu):
     answ_v=[]
     answers={}
     await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n"\
-                            "⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
+                            f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
     async with bot.conversation(id_user) as conv:
         def my_press_event(id_user):
