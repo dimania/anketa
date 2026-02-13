@@ -532,7 +532,7 @@ async def check_user_run_anketa(id_user, event_bot, menu):
     if res:
        #await event_bot.respond(f"Вы уже отвечали на вопросы.\n Желаете пройти опрос снова?\n Предыдущие ответы будут потяряны.\n")
        keyboard = [ Button.inline("Да", b"/yes"),Button.inline("Нет", b"/no") ]
-       await event_bot.respond("Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\nПредыдущие ответы будут потяряны.\n", parse_mode='md', buttons=keyboard)
+       await event_bot.respond("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\nПредыдущие ответы будут потеряны.\n", parse_mode='md', buttons=keyboard)
       
        @bot.on(events.CallbackQuery())
        async def callback_yn(event):            
@@ -567,12 +567,12 @@ async def run_anketa(id_user, event_bot, menu):
     v=1
     answ_v=[]
     answers={}
-    await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n\n")
+    await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n"\
+                            "⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
     async with bot.conversation(id_user) as conv:
-
         def my_press_event(id_user):
-            return events.CallbackQuery(func=lambda e: e.sender_id == id_user)
+            return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
             for cur_question  in all_questions:
                 if not all_questions.get(cur_question):
@@ -580,8 +580,6 @@ async def run_anketa(id_user, event_bot, menu):
                     response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
                     resp_text = response.text
                     logging.info(f"Get respond text: {question_id} : {resp_text}")
-                    #async with dbm.DatabaseBot(sts.db_name) as db:     
-                    #    await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
                     answers[question_id+1]=resp_text
                 else:
                     button.clear()
@@ -591,29 +589,30 @@ async def run_anketa(id_user, event_bot, menu):
                         button.append([ Button.inline(f'🔹 {variant}', bdata)])
                         v=v+1
                     await conv.send_message(str_qst, buttons=button)
-                    handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER)
+                    handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
                     event_res = await handle
                     button_pressed = event_res.data.decode('utf-8')
                     answ_v = button_pressed.replace('VARIANT_', '').split('_')
                     logging.debug(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
                     answers[question_id+1]=answ_v[1]
-                    # write to db
                 question_id = question_id + 1
             logging.debug(f"Dict All answers: {answers}")
+            # Write Answers to DB
             async with dbm.DatabaseBot(sts.db_name) as db:     
                     await db.db_add_answer(id_user, first_name, nickname, answers)
-            await conv.send_message(f"🔆Вы ответили на все вопросы.\n"\
-                                    "результаты сохранены.\n"
+            await conv.send_message(f"🔆 Вы ответили на все вопросы.\n"\
+                                    "Результаты сохранены.\n"
                                     "Для повторного прохождения опроса\n"\
-                                    "нажмите кнопку Start\n")
+                                    "нажмите кнопку Старт\n")
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question} ")
             await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого нажмите кнопку Start\n")
+                                    "Для этого нажмите кнопку Старт\n")
         conv.cancel()
-        if menu: await create_admin_menu(menu, event_bot)
+        if menu: 
+            await create_admin_menu(menu, event_bot)
 
     return 0 
 
@@ -622,7 +621,7 @@ async def show_qusetions(event_bot):
     Show all questions
     '''
     i=1
-    message=f"❔ Текущие вопросы:"
+    message=f"🧐 Текущие вопросы:"
     for qst in all_questions:
         message = message + f"\n{i}.{qst}\n"
         for variant in all_questions.get(qst):

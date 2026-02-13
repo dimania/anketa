@@ -106,18 +106,6 @@ class DatabaseBot:
         
         return cursor
 
-    async def db_add_answer_old(self, id_user, name_user, nick_user, question_id, answer_user):
-        ''' Add new answer to database '''
-        cur_date = datetime.now()
-
-        cursor = await self.db_modify("INSERT INTO Answers (id_user, name_user, nick_user, question_id, answer_user, date) VALUES(?, ?, ?, ?, ?, ? )",\
-                                ( id_user, name_user, nick_user, question_id, answer_user,cur_date ))
-        if cursor: 
-            #return str(cursor.lastrowid)
-            return True
-        else:
-            return False
-
     async def db_add_answer(self, id_user, name_user, nick_user, answers):
         ''' Add new answer to database '''
         cur_date = datetime.now()
