@@ -4,7 +4,7 @@
 # If run in other location change SRC var
 
 SRC='../'
-NAME_IMAGE='dimania/anketa'
+NAME_IMAGE='dimania/anketa2'
 
 # copy files for container to tmp
 
