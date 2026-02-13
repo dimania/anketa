@@ -427,8 +427,15 @@ async def gen_excel(filename):
         data['name_user'].append(dict(row).get('name_user'))       
         data['nick_user'].append(dict(row).get('nick_user'))
         index=int(dict(row).get('question_id'))
-        data['question_id'].append(all_questions[index-1])
-        data['answer_user'].append(dict(row).get('answer_user'))
+        #data['question_id'].append(all_questions[index-1])
+        key_q=list(all_questions)[index-1]
+        data['question_id'].append(key_q)
+        answer_cur=dict(row).get('answer_user')
+        logging.info(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
+        if all_questions.get(key_q):
+            data['answer_user'].append(all_questions.get(key_q)[int(answer_cur)-1])
+        else: 
+            data['answer_user'].append(answer_cur)
         #2024-03-03 11:46:05.488155
         dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
         date = dt.strftime('%d.%m.%y')
@@ -584,6 +591,7 @@ async def run_anketa(id_user, event_bot, menu):
                 else:
                     button.clear()
                     str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
+                    v=1
                     for variant in all_questions.get(cur_question):
                         bdata=f'VARIANT_{question_id}_{v}'
                         button.append([ Button.inline(f'🔹 {variant}', bdata)])

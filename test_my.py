@@ -116,6 +116,34 @@ def get_txt_text(filename):
     
     return text
 
+def conversion_example():
+    @bot.on(events.NewMessage(pattern='/test'))  
+    async def worklogs(event):        
+        chat_id = event.message.chat.id    
+        sender = await event.get_sender()
+        sender_id = sender.id
+        async with bot.conversation(chat_id) as conv:
+            
+            
+            def my_press_event(user_id):
+                return events.CallbackQuery(func=lambda e: e.sender_id == user_id)
+
+            buttons = [[Button.inline('Yes'), Button.inline('No')]]
+            await conv.send_message('To be or not no be? Answer yes|no, or write your own opinion', buttons=buttons)
+        
+            tasks = [conv.wait_event(my_press_event(sender_id)), conv.get_response()]
+            done, pendind = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            event = done.pop().result()
+            
+            if type(event) is events.callbackquery.CallbackQuery.Event:
+                selected = event.data.decode('utf-8')
+                print(f'Got button: "{selected}"')
+            elif type(event) is tl.patched.Message: 
+                message = event.text
+                print(f'Got text message: "{message}"')
+
+    
+
 def main():
     ss={}
     ss['u_id1'] = 'u_nick','u_fname'
@@ -127,11 +155,13 @@ def main():
     ss3_1='u_fname3'
 
     ss3[ss3k]=ss3_0,ss3_1
-    #print(f"Orig ss->{ss}")
 
+    print(f"Orig ss->{list(ss)[0]}")
+    key=list(ss)[0]
+    print(f"Orig ss->{ss.get(key)[1]}")
     #for user_id,nicks in ss.items():
     #    print(f'{user_id}->{ nicks[1] }\n')
-
+    exit(0)
     #ss.clear()
     ss.update(ss2)
     #print(f"Update ss to ss2  ->{ss} {len(ss)}")
@@ -221,30 +251,6 @@ def main():
         print(f"[{i}]{string}")
         i=i+1
 
-@bot.on(events.NewMessage(pattern='/test'))  
-async def worklogs(event):        
-    chat_id = event.message.chat.id    
-    sender = await event.get_sender()
-    sender_id = sender.id
-    async with bot.conversation(chat_id) as conv:
-        
-        
-        def my_press_event(user_id):
-            return events.CallbackQuery(func=lambda e: e.sender_id == user_id)
-
-        buttons = [[Button.inline('Yes'), Button.inline('No')]]
-        await conv.send_message('To be or not no be? Answer yes|no, or write your own opinion', buttons=buttons)
-    
-        tasks = [conv.wait_event(my_press_event(sender_id)), conv.get_response()]
-        done, pendind = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-        event = done.pop().result()
-        
-        if type(event) is events.callbackquery.CallbackQuery.Event:
-            selected = event.data.decode('utf-8')
-            print(f'Got button: "{selected}"')
-        elif type(event) is tl.patched.Message: 
-            message = event.text
-            print(f'Got text message: "{message}"')
             
 if __name__ == '__main__':
     main()
