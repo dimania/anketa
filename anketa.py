@@ -484,7 +484,7 @@ async def get_qusetion_data(event_bot):
     "🔹MS Excel файл (xls,xlsx) по одному вопросу в ячейке в первой колонке\n" \
     "🔹варианты ответов в следующих за вопросом колонках\n" \
     "🔹если нет варианта ответа - ответ вводит опрашиваемый\n" \
-    "⚠️ Старый формат MS word (doc) не поддерживается!\n" \
+    #"⚠️ Старый формат MS word (doc) не поддерживается!\n" \
     "\n♨️ Текущие вопросы и ответы будут удалены!")
 
     @bot.on(events.NewMessage())
@@ -557,36 +557,52 @@ async def run_anketa(id_user, event_bot, menu):
     run main process for anketting
     '''
     user_ent = await bot.get_entity(id_user)
+    sender = await event_bot.get_sender()
+    sender_id = sender.id
     nickname = user_ent.username
     first_name = user_ent.first_name
     question_id=0
     button=[]
     bdata=''
     v=1
+    answ_v=[]
     await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n\n")
 
     async with bot.conversation(id_user) as conv:
-        for cur_question  in all_questions:
-            if not all_questions.get(cur_question):
-                await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
-                response = await conv.get_response()
-                resp_text = response.text
-                logging.info(f"Get respond text: {question_id} : {resp_text}")
-                #async with dbm.DatabaseBot(sts.db_name) as db:     
-                #    await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
-            else:
-                str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
-                for variant in all_questions.get(cur_question):
-                    bdata=f'VARIANT_{question_id}_{v}'
-                    button.append([ Button.inline(f'🔹 {variant})', bdata)])
-                    v=v+1
-                await conv.send_message(str_qst, buttons=button)
-                response = await conv.get_response()
-                resp_text = response.text
-                logging.info(f"Get respond button text: {question_id} : {resp_text}")
-                # write to db
-            question_id = question_id + 1
-        await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
+
+        def my_press_event(id_user):
+            return events.CallbackQuery(func=lambda e: e.sender_id == id_user)
+        try:
+            for cur_question  in all_questions:
+                if not all_questions.get(cur_question):
+                    await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
+                    response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
+                    resp_text = response.text
+                    logging.info(f"Get respond text: {question_id} : {resp_text}")
+                    #async with dbm.DatabaseBot(sts.db_name) as db:     
+                    #    await db.db_add_answer(id_user, first_name, nickname, question_id+1, resp_text)
+                else:
+                    button.clear()
+                    str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
+                    for variant in all_questions.get(cur_question):
+                        bdata=f'VARIANT_{question_id}_{v}'
+                        button.append([ Button.inline(f'🔹 {variant}', bdata)])
+                        v=v+1
+                    await conv.send_message(str_qst, buttons=button)
+                    handle = conv.wait_event(my_press_event(sender_id,timeout=sts.TIMEOUT_FOR_ANSWER))
+                    event_res = await handle
+                    button_pressed = event_res.data.decode('utf-8')
+                    answ_v = button_pressed.replace('VARIANT_', '').split('_')
+                    logging.info(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
+                    # write to db
+                question_id = question_id + 1
+            await conv.send_message(f"Ура вы ответили на все вопросы: {question_id}")
+        except TimeoutError as error:
+            logging.info(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question} ")
+            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} на ответ истекло.\n"\
+                                    "Результаты не будут сохранены.\n"\
+                                    "Пожалуйста пройдите опрос заново.\n"\
+                                    "Для этого нажмите кнопку Start\n")
         conv.cancel()
         if menu: await create_admin_menu(menu, event_bot)
 

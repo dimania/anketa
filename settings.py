@@ -22,7 +22,9 @@ NO_MENU = 0
 BASIC_MENU = 1
 CUSER_MENU = 2
 LIST_REC_IN_MSG = 20
-RETRIES_DB_LOCK = 5 
+RETRIES_DB_LOCK = 5
+#Timeout for answer user in sec
+TIMEOUT_FOR_ANSWER = 60
 
 api_id = None
 api_hash = None
