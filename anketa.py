@@ -76,7 +76,6 @@ async def add_admins(event):
         text_reply=''
         new_admins={}
 
-
         try:
             if event_select.message.action.peers[0].__class__.__name__ == "RequestedPeerUser":
                 button_id = event_select.message.action.button_id
@@ -104,8 +103,6 @@ async def add_admins(event):
                             ret = await db.db_add_admins(new_admins)
                         if ret:
                             #Update current list of admins
-                            #for nik in nicknames:
-                            #    sts.Admins.append(nik)
                             sts.Admins.update(new_admins)
                             text_reply=text_reply+f"🏁Администраторы добавлены🏁"
                         else:
@@ -288,9 +285,7 @@ async def get_new_questions(filename):
     Get new questions from file txt,docx,xls,xlsx and return list
     :param filename: file with questions
     '''
-        
     root,ext = os.path.splitext(filename)
-    
     kind = filetype.guess(filename)
     
     #logging.debug(f'File extension: {kind.extension}')
@@ -320,9 +315,6 @@ async def get_new_questions(filename):
         
         qlist[item[0]]=val
         val=[]
-
-    #qlist = [item.strip() for item in text_content.split('\n')]
-    #qlist = list(filter(None, qlist))
     return qlist
 
 async def create_admin_menu(level, event):
@@ -438,7 +430,7 @@ async def gen_excel(filename):
             data['answer_user'].append(answer_cur)
         #2024-03-03 11:46:05.488155
         dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
-        date = dt.strftime('%d.%m.%y')
+        date = dt.strftime('%d.%m.%Y')
         time = dt.strftime('%H:%M')
         data['date'].append(date)
         data['time'].append(time)
@@ -539,7 +531,7 @@ async def check_user_run_anketa(id_user, event_bot, menu):
     if res:
        #await event_bot.respond(f"Вы уже отвечали на вопросы.\n Желаете пройти опрос снова?\n Предыдущие ответы будут потяряны.\n")
        keyboard = [ Button.inline("Да", b"/yes"),Button.inline("Нет", b"/no") ]
-       await event_bot.respond("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\nПредыдущие ответы будут потеряны.\n", parse_mode='md', buttons=keyboard)
+       await event_bot.respond("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\n♨️Предыдущие ответы будут потеряны.\n", parse_mode='md', buttons=keyboard)
       
        @bot.on(events.CallbackQuery())
        async def callback_yn(event):            
