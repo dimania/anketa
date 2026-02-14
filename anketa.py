@@ -403,10 +403,24 @@ async def gen_excel(filename):
     data={}
     data['name_user']=[]
     data['nick_user']=[]
-    data['question_id']=[]
+    data['question']=[]
     data['answer_user']=[]
     data['date']=[]
     data['time']=[]
+
+    data_ws2={}
+    data_ws2['date']=[]
+    data_ws2['time']=[]
+    data_ws2['name_user']=[]
+    data_ws2['nick_user']=[]
+    #data_ws2['question1']=[]
+    #data_ws2['question2']=[]
+    #data_ws2['answer_user']=[]
+    #df_ws2={'questioin1':['answer1','answer2','answer3']}
+
+    # Init collums for question
+    for qst in  all_questions.keys():
+        data_ws2[qst]=[]
 
     
     async with dbm.DatabaseBot(sts.db_name) as db:
@@ -414,26 +428,33 @@ async def gen_excel(filename):
     if not rows:
         return False
 
-    # Get name_user, nick_user, question_id, answer_user, date
+    # Get name_user, nick_user, question, answer_user, date
     for row in rows:
         data['name_user'].append(dict(row).get('name_user'))       
         data['nick_user'].append(dict(row).get('nick_user'))
+        data_ws2['name_user'].append(dict(row).get('name_user'))       
+        data_ws2['nick_user'].append(dict(row).get('nick_user'))
         index=int(dict(row).get('question_id'))
-        #data['question_id'].append(all_questions[index-1])
+        #data['question'].append(all_questions[index-1])
         key_q=list(all_questions)[index-1]
-        data['question_id'].append(key_q)
+        data['question'].append(key_q)        
         answer_cur=dict(row).get('answer_user')
         logging.info(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
         if all_questions.get(key_q):
             data['answer_user'].append(all_questions.get(key_q)[int(answer_cur)-1])
+            data_ws2[key_q].append(all_questions.get(key_q)[int(answer_cur)-1])
         else: 
             data['answer_user'].append(answer_cur)
+            data_ws2[key_q].append(answer_cur)
+            
         #2024-03-03 11:46:05.488155
         dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
         date = dt.strftime('%d.%m.%Y')
         time = dt.strftime('%H:%M')
         data['date'].append(date)
         data['time'].append(time)
+        data_ws2['date'].append(date)
+        data_ws2['time'].append(time)
 
     df = pd.DataFrame(data)
 
