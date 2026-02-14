@@ -161,7 +161,7 @@ def main():
     print(f"Orig ss->{ss.get(key)[1]}")
     #for user_id,nicks in ss.items():
     #    print(f'{user_id}->{ nicks[1] }\n')
-    exit(0)
+    #exit(0)
     #ss.clear()
     ss.update(ss2)
     #print(f"Update ss to ss2  ->{ss} {len(ss)}")
