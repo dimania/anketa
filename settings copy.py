@@ -11,7 +11,7 @@
 import os
 
 #------------------------
-import config as cfg
+import myconfig as cfg
 #------------------------
 
 #-----------------

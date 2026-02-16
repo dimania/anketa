@@ -11,6 +11,7 @@ NAME_IMAGE='dimania/anketa2'
 temp_dir=$(mktemp -d)
 trap 'rm -rf "$temp_dir"' EXIT
 
+sed -i 's/import myconfig as cfg/import config as cfg/g' ${SRC}/settings.py
 cp ${SRC}/anketa.py $temp_dir
 cp ${SRC}/dbmodule.py $temp_dir
 cp ${SRC}/settings.py $temp_dir
