@@ -377,7 +377,7 @@ async def show_stats(event):
   
     return True 
 
-async def send_answ_db(event):
+async def send_report(event):
     '''
     send Answers DB to Admin (load results)
     '''
@@ -389,8 +389,9 @@ async def send_answ_db(event):
     logging.debug(f"Gen filename: {filename}")
     res = await gen_excel(filename)
     if res:
-        message="Ваш отчет"
+        message="📊 Ваш отчет"
         await bot.send_file( event.query.user_id, filename, caption=message, parse_mode="html" ) 
+        await asyncio.sleep(3) # Delay for user after send report and show menu
         return True
     else:
         await event.respond(f"🚷На данный момент нет информаци для отчета.\nЕще никто не прошел опрос.")
@@ -413,10 +414,7 @@ async def gen_excel(filename):
     data_ws2['time']=[]
     data_ws2['name_user']=[]
     data_ws2['nick_user']=[]
-    #data_ws2['question1']=[]
-    #data_ws2['question2']=[]
-    #data_ws2['answer_user']=[]
-    #df_ws2={'questioin1':['answer1','answer2','answer3']}
+   
 
     # Init collums for question
     for qst in  all_questions.keys():
@@ -432,14 +430,12 @@ async def gen_excel(filename):
     for row in rows:
         data['name_user'].append(dict(row).get('name_user'))       
         data['nick_user'].append(dict(row).get('nick_user'))
-        data_ws2['name_user'].append(dict(row).get('name_user'))       
-        data_ws2['nick_user'].append(dict(row).get('nick_user'))
         index=int(dict(row).get('question_id'))
         #data['question'].append(all_questions[index-1])
         key_q=list(all_questions)[index-1]
         data['question'].append(key_q)        
         answer_cur=dict(row).get('answer_user')
-        logging.info(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
+        logging.debug(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
         if all_questions.get(key_q):
             data['answer_user'].append(all_questions.get(key_q)[int(answer_cur)-1])
             data_ws2[key_q].append(all_questions.get(key_q)[int(answer_cur)-1])
@@ -453,25 +449,49 @@ async def gen_excel(filename):
         time = dt.strftime('%H:%M')
         data['date'].append(date)
         data['time'].append(time)
-        data_ws2['date'].append(date)
-        data_ws2['time'].append(time)
+        if dict(row).get('name_user') not in data_ws2['name_user']:
+            data_ws2['name_user'].append(dict(row).get('name_user'))       
+            data_ws2['nick_user'].append(dict(row).get('nick_user'))        
+            data_ws2['date'].append(date)
+            data_ws2['time'].append(time)
+        else:
+            continue
 
     df = pd.DataFrame(data)
+    logging.info(f"Results gen excel: ws2: {data_ws2}")
+    df1 = pd.DataFrame(data_ws2)
 
     # Order the columns if necessary.
-    #df = df[["Rank", "Country", "Population"]]
+    #df = df[["name_user", "nick_user", "question", "answer_user", "date", "time" ]]
+    #sort_list_ws2=["date", "time", "name_user", "nick_user"]
+    #sort_list_ws2.extend(key_q)
+    #logging.info(f"Results gen excel: sort: {sort_list_ws2}")
+    #df1 = df1[["date", "time", "name_user", "nick_user", ]] # "question", "answer_user", 
 
     # Create a Pandas Excel writer using XlsxWriter as the engine.
     writer = pd.ExcelWriter(filename, engine="xlsxwriter")
 
     # Write the dataframe data to XlsxWriter. Turn off the default header and
     # index and skip one row to allow us to insert a user defined header.
-    df.to_excel(writer, sheet_name="Общий", startrow=1, header=False, index=False)
-
+    df1.to_excel(writer, sheet_name="По вопросам", startrow=1, header=False, index=False)
+    df.to_excel(writer, sheet_name="По пользователям", startrow=1, header=False, index=False)
     # Get the xlsxwriter workbook and worksheet objects.
     workbook = writer.book
-    worksheet = writer.sheets["Общий"]
-    #worksheet = writer.sheets["Sheet1"]
+    worksheet = writer.sheets["По вопросам"]
+
+    # Get the dimensions of the dataframe.
+    (max_row, max_col) = df1.shape
+
+    # Create a list of column headers, to use in add_table().
+    column_settings = [{"header": column} for column in df1.columns]
+
+    # Add the Excel table structure. Pandas will add the data.
+    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
+
+    # Make the columns wider for clarity.
+    worksheet.set_column(0, max_col - 1, 12)
+    # Close the Pandas Excel writer and output the Excel file.
+    worksheet = writer.sheets["По пользователям"]
 
     # Get the dimensions of the dataframe.
     (max_row, max_col) = df.shape
@@ -485,7 +505,7 @@ async def gen_excel(filename):
     # Make the columns wider for clarity.
     worksheet.set_column(0, max_col - 1, 12)
 
-    # Close the Pandas Excel writer and output the Excel file.
+   
     writer.close()
     
     return True
@@ -713,7 +733,7 @@ async def main_frontend():
             await check_user_run_anketa(id_user, event_bot_choice, 1)
             #await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_answers':
-            await send_answ_db(event_bot_choice)
+            await send_report(event_bot_choice)
             await create_admin_menu(0, event_bot_choice)
         elif button_data == '/am_questions':
             await get_qusetion_data(event_bot_choice)
