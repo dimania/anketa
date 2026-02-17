@@ -302,20 +302,32 @@ async def get_new_questions(filename):
         return False
     
     qlist={}
+    tlist={}
     val=[]
     for item in text_content['data']:
         #item - one question and variants answers if exist
+        type_current_qusetion=item.pop(0)
+        if type_current_qusetion not in sts.TYPES_OF_QUESTONS:
+            #raise ValueError("Type of question invald!")
+            return False
+        
+        logging.debug(f'Item content is:{item}')
         nan_list=pd.isna(item)
+        logging.debug(f'Item content is:{nan_list}')
         i=False
         # variants answer to list values dict        
         for x, y in zip(item,nan_list):
+            logging.debug(f'X_Y:{x}_{y}')
             if not y and i:
                 val.append(x) 
             i=True
         
         qlist[item[0]]=val
+        tlist[item[0]]=type_current_qusetion
         val=[]
-    return qlist
+        logging.debug(f'tlist=:{tlist}\nqlist={qlist}')
+    
+    return tlist,qlist
 
 async def create_admin_menu(level, event):
     ''' Create Admin menu '''
@@ -535,15 +547,18 @@ async def get_qusetion_data(event_bot):
             logging.info(f'File saved to: {download_path}')                                   
             #with open(download_path, 'r', encoding="utf-8") as file:
             #    new_questions = [line.strip() for line in file.readlines()]
-            new_questions = await get_new_questions(download_path)
+            new_type_questions, new_questions = await get_new_questions(download_path)
             if not new_questions:
-                await event_bot.respond("⚠️Данный формат файла не поддерживается!")
+                await event_bot.respond("⚠️Неверные данные, проверьте файл с вопросами!")
                 bot.remove_event_handler(bot_handler_f_bot)
                 await create_admin_menu(0, event_bot)
                 return False
-            all_questions.clear()   
+            all_questions.clear()
+            type_questions.clear()   
             all_questions.update(new_questions)
+            type_questions.update(new_type_questions)
             logging.info(f'New all_questions: {all_questions}')
+            logging.info(f'New type_questions: {type_questions}')
             async with dbm.DatabaseBot(sts.db_name) as db:
                 await db.db_rewrite_new_questions(all_questions)
 
@@ -808,10 +823,16 @@ sts.get_config()
 
 # Init default questions
 all_questions = {   "text_q1":[],
-                    "text_q2":['variant1','variant2'],
+                    "text_q2":['variant1','variant2','variant3','variant4'],
                     "text_q3":['variant1'],
                     "text_q4":['variant1','variant2','variant3'],
                     "text_q5":[]
+                }
+type_questions = {  "text_q1":"simple",
+                    "text_q2":"select",
+                    "text_q3":"onlyone",
+                    "text_q4":"onlyone",
+                    "text_q5":"simple"
                 }
 
 filename=os.path.join(os.path.dirname(sts.logfile),os.path.basename(sts.logfile))

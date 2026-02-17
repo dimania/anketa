@@ -11,7 +11,7 @@
 import os
 
 #------------------------
-import config as cfg
+import myconfig as cfg
 #------------------------
 
 #-----------------
@@ -25,6 +25,11 @@ LIST_REC_IN_MSG = 20
 RETRIES_DB_LOCK = 5
 #Timeout for answer user in sec
 TIMEOUT_FOR_ANSWER = 60
+# Type of qestions: 
+# simple - text answer
+# select - multi selection dialog
+# onlyone - select oly one answer from list
+TYPES_OF_QUESTONS = ["simple", "select", "onlyone"]
 
 api_id = None
 api_hash = None
@@ -40,6 +45,7 @@ log_level = None
 cursor = None
 connection = None
 ses_bot_str = None
+type_questions = None
 all_questions = None
 Admins = {}
 Builtin_admin = None
@@ -64,6 +70,7 @@ def get_config(config=cfg):
     global connection
     global ses_bot_str
     global all_questions
+    global type_questions
     global Admins
     global Builtin_admin
 

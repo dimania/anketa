@@ -142,7 +142,13 @@ def conversion_example():
                 message = event.text
                 print(f'Got text message: "{message}"')
 
-    
+def test_ret_arrays():
+    ad={}
+    ad['u_id1'] = 'u_nick','u_fname'
+    ad['u_id2'] = 'u_nick','u_fname'
+    ad1=[]
+    ad1=['u_nick1','u_fname1']
+    return ad,ad1
 
 def main():
     ss={}
@@ -153,8 +159,13 @@ def main():
     ss3k='12345'
     ss3_0='u_nick3'
     ss3_1='u_fname3'
-
+    ad=[]
+    ad1=[]
     ss3[ss3k]=ss3_0,ss3_1
+
+    ad,ad1 = test_ret_arrays()
+    print(f"ad={ad}\nad1={ad1}\n")
+    exit(0)
 
     print(f"Orig ss->{list(ss)[0]}")
     key=list(ss)[0]

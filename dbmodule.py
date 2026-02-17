@@ -48,6 +48,7 @@ class DatabaseBot:
         CREATE TABLE IF NOT EXISTS Questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         question_id INT NOT NULL UNIQUE,
+        question_type TEXT,
         question TEXT NOT NULL,
         date TEXT
         )
@@ -118,7 +119,6 @@ class DatabaseBot:
             return True
         else:
             return False
-
 
     async def db_rewrite_new_questions(self, questions):#FIXME dont write variants
         ''' Rewrite question on database from Array '''
