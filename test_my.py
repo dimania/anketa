@@ -163,6 +163,12 @@ def main():
     ad1=[]
     ss3[ss3k]=ss3_0,ss3_1
 
+    if 'u_idw1' in ss.keys():
+        print('ok')
+    else:
+        print('no ok')
+    exit(0)
+
     ad,ad1 = test_ret_arrays()
     #print(f"ad={ad}\nad1={ad1}\n")
 

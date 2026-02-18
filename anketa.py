@@ -21,7 +21,6 @@ from telethon.tl.custom import Button
 from telethon import errors
 from telethon.events import StopPropagation
 from telethon.sessions import StringSession
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import pandas as pd
 import filetype
 import docx
@@ -56,7 +55,7 @@ async def add_admins(event):
     reply_markup = {"keyboard": [buttons], "resize_keyboard": True, "one_time_keyboard": True }
     payload = {
     "chat_id": id_user, # Id user to
-    "text": f"Нажмите кнопку 'Выбор Админа' чтобы добавть в список администраторов", 
+    "text": "Нажмите кнопку 'Выбор Админа' чтобы добавть в список администраторов", 
     "reply_markup": json.dumps(reply_markup)
     }
 
@@ -70,9 +69,6 @@ async def add_admins(event):
     @bot.on(events.Raw(types=UpdateNewMessage))
     async def on_requested_peer_user(event_select):
         logging.debug(f"Get select user event:{event_select}")
-        users_id_list=[] 
-        usernames=[]
-        nicknames=[]
         text_reply=''
         new_admins={}
 
@@ -81,18 +77,10 @@ async def add_admins(event):
                 button_id = event_select.message.action.button_id
                 if button_id == 1:
                     for peer in event_select.message.action.peers:
-                        if peer.user_id in sts.Admins.keys():
+                        if peer.user_id in sts.Admins:
+                        #if peer.user_id in sts.Admins.keys():
                            text_reply=text_reply+f"⚠️{peer.username} {peer.first_name} уже админ!\n"
                            continue
-                        #if peer.username in sts.Admins:
-                        #   text_reply=text_reply+f"⚠️{peer.username} уже админ!\n"
-                        #   continue
-                        #if peer.username == None:
-                        #   text_reply=text_reply+f"⚠️{peer.first_name} не имеет nickname!\n"
-                        #   continue 
-                        #usernames.append(peer.first_name)
-                        #users_id_list.append(peer.user_id)
-                        #nicknames.append(peer.username)
                         new_admins[int(peer.user_id)]=peer.username,peer.first_name
 
                     bot.remove_event_handler(on_requested_peer_user)
@@ -104,11 +92,11 @@ async def add_admins(event):
                         if ret:
                             #Update current list of admins
                             sts.Admins.update(new_admins)
-                            text_reply=text_reply+f"🏁Администраторы добавлены🏁"
+                            text_reply=text_reply+"🏁Администраторы добавлены🏁"
                         else:
-                            text_reply=f"🏁Ошибка добавления админа🏁"
+                            text_reply="🏁Ошибка добавления админа🏁"
                     else:
-                        text_reply=text_reply+f"Некого добавить!"
+                        text_reply=text_reply+"Некого добавить!"
 
                     reply_markup = { "remove_keyboard": True }
                     payload_remove_kb = {
@@ -216,10 +204,10 @@ async def check_nickname(username):
         logging.debug(f"Error check Nickname [{username}] {e}")
         return False
 
-async def is_utf8_text_file(filename): #NOTUSE now
+async def is_utf8_text_file(fname): #NOTUSE now
     """Checks if a file can be entirely decoded as UTF-8 text."""
     try:
-        with open(filename, 'r', encoding='utf-8') as file:
+        with open(fname, 'r', encoding='utf-8') as file:
             file.read()
         return True
     except UnicodeDecodeError:
@@ -231,13 +219,13 @@ async def is_utf8_text_file(filename): #NOTUSE now
         logging.warning(f"An error occurred: {e}")
         return False
 
-async def get_excel_data(filename, sheet_name=0):
+async def get_excel_data(fname, sheet_name=0):
     """
     Reads data from an Excel file into a pandas DataFrame.
     sheet_name can be an integer (0 for the first sheet) or a string ('Sheet1').
     """
     try:
-        df = pd.read_excel(filename, sheet_name=sheet_name, header=None )
+        df = pd.read_excel(fname, sheet_name=sheet_name, header=None )
         # Convert the DataFrame to dict
         res=df.to_dict(orient='split', index=False) 
         return res
@@ -245,57 +233,45 @@ async def get_excel_data(filename, sheet_name=0):
         logging.warning(f"Error reading Excel file: {e}")
         return False
 
-async def get_word_text(filename): #NOTUSE now
+async def get_word_text(fname): #NOTUSE now
     """
     Extracts all text from a .docx file.
     """
-    document = docx.Document(filename)
+    document = docx.Document(fname)
     full_text = []
     for paragraph in document.paragraphs:
         full_text.append(paragraph.text)
 
     # Join paragraphs with a newline character
     return '\n'.join(full_text)
-
-async def get_oldword_text(filename): #FIXME It`s dont work. NOTUSE now
-    """
-    Extracts all text from old a .doc file.
-    """
-    # OLD word file - .doc
-       # Convert the document and extract text
-       
-    #text = docx2txt.process(filename) 
-    #return text
-    pass
-    return None
     
-async def get_txt_text(filename): #NOTUSE now
+async def get_txt_text(fname): #NOTUSE now
     '''
     Get data fron text file 
     '''
-    with open(filename, 'r', encoding="utf-8") as file:
+    with open(fname, 'r', encoding="utf-8") as file:
                 #text = text + [for line in file.readlines()]
                 text=file.read()
     
     return text
 
-async def get_new_questions(filename):
+async def get_new_questions(fname):
     '''
     Docstring для get_new_questions
     Get new questions from file txt,docx,xls,xlsx and return list
     :param filename: file with questions
     '''
-    root,ext = os.path.splitext(filename)
-    kind = filetype.guess(filename)
+    #root,ext = os.path.splitext(fname)
+    kind = filetype.guess(fname)
     
     #logging.debug(f'File extension: {kind.extension}')
     #logging.debug(f'File MIME type: {kind.mime}')
 
     if kind is None:
-        logging.debug(f'Cannot guess file type filename: {filename}!')
+        logging.debug(f'Cannot guess file type filename: {fname}!')
         return False,False
     elif kind.extension == 'xlsx' or kind.extension == 'xls':
-        text_content = await get_excel_data(filename)
+        text_content = await get_excel_data(fname)
         logging.debug(f'Xlsx or xls content is:{text_content}')
     
     if not text_content:
@@ -376,7 +352,7 @@ async def show_stats(event):
     async with dbm.DatabaseBot(sts.db_name) as db:
         rows = await db.get_info_by_users()
     if not rows:
-        await event.respond(f"🚷На данный момент нет информаци.\nЕще никто не прошел опрос.")
+        await event.respond("🚷На данный момент нет информаци.\nЕще никто не прошел опрос.")
         return False
 
     strstat=f"🔢 Ответили на вопросы: {len(rows)}\n\n👥 Список прошедших опрос:\n\n"
@@ -398,16 +374,16 @@ async def send_report(event):
 
     dt = datetime.now().strftime('%d%m%Y_%H%M%S')
     
-    filename = f"reports/report_{dt}.xlsx"
-    logging.debug(f"Gen filename: {filename}")
-    res = await gen_excel(filename)
+    fname = f"reports/report_{dt}.xlsx"
+    logging.debug(f"Gen filename: {fname}")
+    res = await gen_excel(fname)
     if res:
         message="📊 Ваш отчет"
-        await bot.send_file( event.query.user_id, filename, caption=message, parse_mode="html" ) 
+        await bot.send_file( event.query.user_id, fname, caption=message, parse_mode="html" ) 
         await asyncio.sleep(3) # Delay for user after send report and show menu
         return True
     else:
-        await event.respond(f"🚷На данный момент нет информаци для отчета.\nЕще никто не прошел опрос.")
+        await event.respond("🚷На данный момент нет информаци для отчета.\nЕще никто не прошел опрос.")
         return False
 
 async def gen_excel(filename):
@@ -430,7 +406,7 @@ async def gen_excel(filename):
    
 
     # Init collums for question
-    for qst in  all_questions.keys():
+    for qst in  all_questions:
         data_ws2[qst]=[]
 
     
@@ -489,7 +465,7 @@ async def gen_excel(filename):
     df1.to_excel(writer, sheet_name="По вопросам", startrow=1, header=False, index=False)
     df.to_excel(writer, sheet_name="По пользователям", startrow=1, header=False, index=False)
     # Get the xlsxwriter workbook and worksheet objects.
-    workbook = writer.book
+    #workbook = writer.book
     worksheet = writer.sheets["По вопросам"]
 
     # Get the dimensions of the dataframe.
@@ -596,11 +572,11 @@ async def check_user_run_anketa(id_user, event_bot, menu):
             logging.info(f"Callback yes/no: {button_data}")
             #await event.delete()
             if button_data == '/no':
-                await event_bot.respond(f"До свидания.\n\n")
+                await event_bot.respond("До свидания.\n\n")
                 bot.remove_event_handler(callback_yn)                
             elif button_data == '/yes': 
                 async with dbm.DatabaseBot(sts.db_name) as db:
-                    row = await db.db_del_user_answers(id_user)
+                    await db.db_del_user_answers(id_user)
                 bot.remove_event_handler(callback_yn)
                 await run_anketa(id_user, event_bot, menu)                                      
             return 0
@@ -622,11 +598,10 @@ async def run_anketa(id_user, event_bot, menu):
     bdata=''
     v=1
     answ_v=[]
-    answ_v_select=[]
     answers={}
     end_of_answer=True
 
-    await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n"\
+    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
                             f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
     async with bot.conversation(id_user) as conv:
@@ -656,7 +631,7 @@ async def run_anketa(id_user, event_bot, menu):
                         v=v+1
                     if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select
                         bdata=f'ANSWER_{question_id}'
-                        button.append([ Button.inline(f'Ответить', bdata)]) 
+                        button.append([ Button.inline('Ответить', bdata)]) 
 
                     await conv.send_message(str_qst, buttons=button)
 
@@ -687,9 +662,10 @@ async def run_anketa(id_user, event_bot, menu):
                                 i=i+1
                             
                             bdata=f'ANSWER_{question_id}'
-                            button.append([ Button.inline(f'Ответить', bdata)])
-                            await bot.delete_messages(event_res.query.user_id,event_res.query.msg_id)
-                            await conv.send_message(str_qst, buttons=button)
+                            button.append([ Button.inline('Ответить', bdata)])
+                            #await bot.delete_messages(event_res.query.user_id,event_res.query.msg_id)
+                            await bot.edit_message(event_res.query.user_id, event_res.query.msg_id,str_qst, buttons=button)
+                            #await conv.send_message(str_qst, buttons=button)
                             end_of_answer=True
                         elif answ_v[0] == sts.TYPES_OF_QUESTONS[2]: # onlyone
                             logging.info(f"Get respond ONLYONE: {question_id} / {answers} / {answ_v}")
@@ -727,7 +703,7 @@ async def show_qusetions(event_bot):
     Show all questions
     '''
     i=1
-    message=f"🧐 Текущие вопросы:"
+    message="🧐 Текущие вопросы:"
     for qst in all_questions:
         message = message + f"\n{i}.{qst}\n"
         for variant in all_questions.get(qst):
@@ -763,9 +739,10 @@ async def main_frontend():
 
 
         if event_bot.message.message == '/start':
-            if id_user in sts.Admins.keys():
+            if id_user in sts.Admins:
+            #if id_user in sts.Admins.keys():
                 #await event_bot.respond("You are admin!")
-                await create_admin_menu(0, event_bot)
+                await create_admin_menu(menu_level, event_bot)
             else:
                 # run anketa for all users who not Admin                    
                 await check_user_run_anketa(id_user, event_bot, 0)           
@@ -787,31 +764,32 @@ async def main_frontend():
     # Run hundler for button callback - menu for Admin
     @bot.on(events.CallbackQuery())
     async def callback_bot_choice(event_bot_choice):
+        menu_level = 0
         id_user = event_bot_choice.query.user_id
-        user_ent = await bot.get_entity(id_user)
-        nickname = user_ent.username
+        #user_ent = await bot.get_entity(id_user)
         logging.debug(f"Get callback event for user[{id_user}] {event_bot_choice}")
        
         # If user not Admin ignore button actions  
-        if id_user not in sts.Admins.keys(): return 0
+        #if id_user not in sts.Admins.keys(): return 0
+        if id_user not in sts.Admins: return 0
 
         button_data = event_bot_choice.data.decode()
         #await event_bot.delete()
         if button_data == '/am_stats':
             await show_stats(event_bot_choice)
-            await create_admin_menu(0, event_bot_choice)
+            await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_anketa':
             await check_user_run_anketa(id_user, event_bot_choice, 1)
-            #await create_admin_menu(0, event_bot_choice)
+            #await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_answers':
             await send_report(event_bot_choice)
-            await create_admin_menu(0, event_bot_choice)
+            await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_questions':
             await get_qusetion_data(event_bot_choice)
-            #await create_admin_menu(0, event_bot_choice)
+            #await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_show_questions':
             await show_qusetions(event_bot_choice)
-            #await create_admin_menu(0, event_bot_choice)
+            #await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_add_admins':
             await add_admins(event_bot_choice)
         elif button_data == '/am_del_admins':
@@ -823,11 +801,11 @@ async def main_frontend():
             data = button_data
             admin_id_delete = int(data.replace('DEL_ADMIN_', ''))
             async with dbm.DatabaseBot(sts.db_name) as db:
-                res = await db.db_del_admins(admin_id_delete)
+                await db.db_del_admins(admin_id_delete)
             logging.info(f'All:{sts.Admins} admin_id_delete:_{admin_id_delete}_')
             sts.Admins.pop(admin_id_delete)
             await event_bot_choice.respond(f"🏁Админ {admin_id_delete} удален🏁")
-            await create_admin_menu(0, event_bot_choice)
+            await create_admin_menu(menu_level, event_bot_choice)
     return bot
 
 async def main():
