@@ -617,7 +617,7 @@ async def run_anketa(id_user, event_bot, menu):
                     response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
                     resp_text = response.text
                     logging.info(f"Get respond text: {question_id} : {resp_text}")
-                    answers[question_id+1]=resp_text                    
+                    answers[question_id+1].append(resp_text)                    
                 else:
                     button.clear()
                     str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
@@ -674,11 +674,11 @@ async def run_anketa(id_user, event_bot, menu):
                             end_of_answer=True
                         elif answ_v[0] == sts.TYPES_OF_QUESTONS[2]: # onlyone
                             logging.info(f"Get respond ONLYONE: {question_id} / {answers} / {answ_v}")
-                            answers[question_id+1]=answ_v[2]
+                            answers[question_id+1].append(answ_v[2])
                             end_of_answer=False
                             break
                         else:
-                            answers[question_id+1]=answ_v[2]
+                            answers[question_id+1].append(answ_v[2])
                             end_of_answer=False
                             break
 
