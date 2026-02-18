@@ -161,9 +161,10 @@ def main():
     ss3_1='u_fname3'
     ad=[]
     ad1=[]
-    ss3[ss3k]=ss3_0,ss3_1
+    ss3[1]=['1','2','4']
+    i = 3
 
-    if 'u_idw1' in ss.keys():
+    if str(i) in ss3[1]:
         print('ok')
     else:
         print('no ok')

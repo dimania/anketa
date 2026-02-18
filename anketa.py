@@ -24,6 +24,7 @@ from telethon.sessions import StringSession
 import pandas as pd
 import filetype
 import docx
+from collections import defaultdict
 #from requests.packages.urllib3.util.retry import Retry
 # --------------------------------
 import settings as sts
@@ -598,7 +599,7 @@ async def run_anketa(id_user, event_bot, menu):
     bdata=''
     v=1
     answ_v=[]
-    answers={}
+    answers=defaultdict(list)
     end_of_answer=True
 
     await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
@@ -636,36 +637,40 @@ async def run_anketa(id_user, event_bot, menu):
                     await conv.send_message(str_qst, buttons=button)
 
                     while end_of_answer:
-                        # WAIT OTHER HERE FIRST
+                        # WAIT ANSWERS OTHER TYPE OF QUESTION HERE
                         handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
                         event_res = await handle 
                         button_pressed = event_res.data.decode('utf-8')
                         #msg_id=msg_id
                         logging.info(f"Message id after event: {event_res.query.msg_id}")
                         if button_pressed.find('ANSWER_') == 0:
+                            answers[question_id+1].sort()
                             end_of_answer=False
                             break
                             
                         answ_v = button_pressed.replace('VARIANT_', '').split('_')
                         logging.info(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
     
-                        if answ_v[0] == sts.TYPES_OF_QUESTONS[1]: # select                            
-                            answers[question_id+1]=answ_v[2]
+                        if answ_v[0] == sts.TYPES_OF_QUESTONS[1]: # select
+                            if answ_v[2] in answers[question_id+1]:
+                                answers[question_id+1].remove(answ_v[2])
+                            else:   
+                                answers[question_id+1].append(answ_v[2])
+
                             button.clear()
                             i=1
                             for variant in all_questions.get(cur_question):
                                 bdata=f'VARIANT_{sts.TYPES_OF_QUESTONS[1]}_{question_id}_{i}'
-                                if i == int(answ_v[2]):
-                                    button.append([ Button.inline(f'🟢 {variant}', bdata)])
+                                if str(i) in answers[question_id+1]:
+                                    emoji='🟢'
                                 else:
-                                    button.append([ Button.inline(f'🔘 {variant}', bdata)])
+                                    emoji='🔘'
+                                button.append([ Button.inline(f'{emoji} {variant}', bdata)])
                                 i=i+1
                             
                             bdata=f'ANSWER_{question_id}'
                             button.append([ Button.inline('Ответить', bdata)])
-                            #await bot.delete_messages(event_res.query.user_id,event_res.query.msg_id)
                             await bot.edit_message(event_res.query.user_id, event_res.query.msg_id,str_qst, buttons=button)
-                            #await conv.send_message(str_qst, buttons=button)
                             end_of_answer=True
                         elif answ_v[0] == sts.TYPES_OF_QUESTONS[2]: # onlyone
                             logging.info(f"Get respond ONLYONE: {question_id} / {answers} / {answ_v}")
