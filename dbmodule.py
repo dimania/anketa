@@ -120,7 +120,7 @@ class DatabaseBot:
         else:
             return False
 
-    async def db_rewrite_new_questions(self, questions):#FIXME dont write variants
+    async def db_rewrite_new_questions(self, questions, type_questions):#FIXME dont write variants
         ''' Rewrite question on database from Array '''
         cur_date = datetime.now()
         #clear Previous Tables
@@ -131,8 +131,9 @@ class DatabaseBot:
         #load new questions in the table Questions
         question_id=1
         for qst_one in questions:
-            cursor = await self.db_modify("INSERT INTO Questions (question_id, question, date) VALUES(?, ?, ? )",\
-                                    ( question_id, qst_one,cur_date ))
+            qst_type=type_questions.get(qst_one)
+            cursor = await self.db_modify("INSERT INTO Questions (question_id, question_type, question, date) VALUES(?, ?, ?, ? )",\
+                                    ( question_id, qst_type, qst_one,cur_date ))
             variant_id=1
             for variant in questions.get(qst_one):
                  if variant:
@@ -149,12 +150,13 @@ class DatabaseBot:
     async def db_load_questions(self):
         ''' Load all question in Array '''
         new_questions={}
+        new_questions_type={}
         val=[]
-        cursor = await self.dbm.execute("SELECT question_id, question FROM Questions")
+        cursor = await self.dbm.execute("SELECT question_id, question_type, question FROM Questions")
         rows = await cursor.fetchall()
         logging.debug(f"Get questions len: {len(rows)}")
 
-        if not rows: return False
+        if not rows: return False,False
 
         for row in rows:
             cursor = await self.dbm.execute("SELECT variant FROM VariantsA Where question_id = ?", (dict(row).get('question_id'),))
@@ -166,9 +168,10 @@ class DatabaseBot:
                 
             new_questions[dict(row).get('question')]=val
             val=[]
+            new_questions_type[dict(row).get('question')]=dict(row).get('question_type')
 
         logging.info(f"Get questions from db: {new_questions}")
-        return new_questions
+        return new_questions_type, new_questions
     
     async def db_load_admins(self):
         ''' Load all question in Array '''

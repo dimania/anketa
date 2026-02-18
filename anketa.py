@@ -293,13 +293,13 @@ async def get_new_questions(filename):
 
     if kind is None:
         logging.debug(f'Cannot guess file type filename: {filename}!')
-        return 1
+        return False,False
     elif kind.extension == 'xlsx' or kind.extension == 'xls':
         text_content = await get_excel_data(filename)
         logging.debug(f'Xlsx or xls content is:{text_content}')
     
     if not text_content:
-        return False
+        return False,False
     
     qlist={}
     tlist={}
@@ -307,9 +307,10 @@ async def get_new_questions(filename):
     for item in text_content['data']:
         #item - one question and variants answers if exist
         type_current_qusetion=item.pop(0)
+        logging.info(f'if {type_current_qusetion} not in {sts.TYPES_OF_QUESTONS}')
         if type_current_qusetion not in sts.TYPES_OF_QUESTONS:
             #raise ValueError("Type of question invald!")
-            return False
+            return False,False
         
         logging.debug(f'Item content is:{item}')
         nan_list=pd.isna(item)
@@ -560,7 +561,7 @@ async def get_qusetion_data(event_bot):
             logging.info(f'New all_questions: {all_questions}')
             logging.info(f'New type_questions: {type_questions}')
             async with dbm.DatabaseBot(sts.db_name) as db:
-                await db.db_rewrite_new_questions(all_questions)
+                await db.db_rewrite_new_questions(all_questions,type_questions)
 
             await event.respond("Данные загружены в бот.")
             bot.remove_event_handler(bot_handler_f_bot)
@@ -621,7 +622,10 @@ async def run_anketa(id_user, event_bot, menu):
     bdata=''
     v=1
     answ_v=[]
+    answ_v_select=[]
     answers={}
+    end_of_answer=True
+
     await event_bot.respond(f"Ответе пожалуйста на несколько вопросов\n"\
                             f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
@@ -630,27 +634,73 @@ async def run_anketa(id_user, event_bot, menu):
             return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
             for cur_question  in all_questions:
+                end_of_answer=True
                 if not all_questions.get(cur_question):
                     await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
+                    #WAIT ANSWER SIMLPE HERE
                     response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
                     resp_text = response.text
                     logging.info(f"Get respond text: {question_id} : {resp_text}")
-                    answers[question_id+1]=resp_text
+                    answers[question_id+1]=resp_text                    
                 else:
                     button.clear()
                     str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
                     v=1
                     for variant in all_questions.get(cur_question):
-                        bdata=f'VARIANT_{question_id}_{v}'
-                        button.append([ Button.inline(f'🔹 {variant}', bdata)])
+                        if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select
+                            bdata=f'VARIANT_{sts.TYPES_OF_QUESTONS[1]}_{question_id}_{v}'
+                            button.append([ Button.inline(f'🔘 {variant}', bdata)])
+                        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[2]: # onlyone
+                             bdata=f'VARIANT_{sts.TYPES_OF_QUESTONS[2]}_{question_id}_{v}'
+                             button.append([ Button.inline(f'🔹 {variant}', bdata)])   
                         v=v+1
+                    if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select
+                        bdata=f'ANSWER_{question_id}'
+                        button.append([ Button.inline(f'Ответить', bdata)]) 
+
                     await conv.send_message(str_qst, buttons=button)
-                    handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
-                    event_res = await handle
-                    button_pressed = event_res.data.decode('utf-8')
-                    answ_v = button_pressed.replace('VARIANT_', '').split('_')
-                    logging.debug(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
-                    answers[question_id+1]=answ_v[1]
+
+                    while end_of_answer:
+                        # WAIT OTHER HERE FIRST
+                        handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
+                        event_res = await handle 
+                        button_pressed = event_res.data.decode('utf-8')
+                        #msg_id=msg_id
+                        logging.info(f"Message id after event: {event_res.query.msg_id}")
+                        if button_pressed.find('ANSWER_') == 0:
+                            end_of_answer=False
+                            break
+                            
+                        answ_v = button_pressed.replace('VARIANT_', '').split('_')
+                        logging.info(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
+    
+                        if answ_v[0] == sts.TYPES_OF_QUESTONS[1]: # select                            
+                            answers[question_id+1]=answ_v[2]
+                            button.clear()
+                            i=1
+                            for variant in all_questions.get(cur_question):
+                                bdata=f'VARIANT_{sts.TYPES_OF_QUESTONS[1]}_{question_id}_{i}'
+                                if i == int(answ_v[2]):
+                                    button.append([ Button.inline(f'🟢 {variant}', bdata)])
+                                else:
+                                    button.append([ Button.inline(f'🔘 {variant}', bdata)])
+                                i=i+1
+                            
+                            bdata=f'ANSWER_{question_id}'
+                            button.append([ Button.inline(f'Ответить', bdata)])
+                            await bot.delete_messages(event_res.query.user_id,event_res.query.msg_id)
+                            await conv.send_message(str_qst, buttons=button)
+                            end_of_answer=True
+                        elif answ_v[0] == sts.TYPES_OF_QUESTONS[2]: # onlyone
+                            logging.info(f"Get respond ONLYONE: {question_id} / {answers} / {answ_v}")
+                            answers[question_id+1]=answ_v[2]
+                            end_of_answer=False
+                            break
+                        else:
+                            answers[question_id+1]=answ_v[2]
+                            end_of_answer=False
+                            break
+
                 question_id = question_id + 1
             logging.debug(f"Dict All answers: {answers}")
             # Write Answers to DB
@@ -681,7 +731,13 @@ async def show_qusetions(event_bot):
     for qst in all_questions:
         message = message + f"\n{i}.{qst}\n"
         for variant in all_questions.get(qst):
-           message = message + f"  🔹 {variant}\n" 
+            if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1]: # select 
+                emoji='🔘'
+            elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # onlyone
+                emoji='🔹'
+            else:
+                emoji=''
+            message = message + f"  {emoji} {variant}\n" 
         i=i+1
     
     await event_bot.respond(message)
@@ -797,7 +853,7 @@ async def main():
     async with dbm.DatabaseBot(sts.db_name) as db:
         logging.debug('Create db if not exist.')
         await db.db_create()
-        new_questions = await db.db_load_questions()
+        new_questions_type,new_questions = await db.db_load_questions()
         rows = await db.db_load_admins()
         adm = {}
         if rows:
@@ -812,6 +868,9 @@ async def main():
     if new_questions:
         all_questions.clear()
         all_questions.update(new_questions)
+        type_questions.clear()
+        type_questions.update(new_questions_type)
+        
 
     # Run basic events loop
     await main_frontend()    
