@@ -585,6 +585,195 @@ async def check_user_run_anketa(id_user, event_bot, menu):
         await run_anketa(id_user, event_bot, menu)       
         return 2
 
+async def simple_conversation(id_user, event_bot, question_id, cur_question):
+    '''
+    simple_conversation - Dialog for simple question 
+    only text filed
+    
+    :param id_user: dialog for telegram user - id_user
+    :param event_bot: parent entity
+    :param question_id: index in dict question
+    :param cur_question: current question
+    '''
+    answers=defaultdict(list)
+
+    async with bot.conversation(id_user) as conv:
+        def my_press_event(id_user):
+            return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
+        try:
+            await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
+            #WAIT ANSWER SIMLPE HERE
+            response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
+            resp_text = response.text
+            logging.info(f"Get respond text: {question_id} / {resp_text}")
+            answers[question_id+1].append(resp_text)
+        except TimeoutError as error:
+            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
+            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+                                    "Результаты не будут сохранены.\n"\
+                                    "Пожалуйста пройдите опрос заново.\n"\
+                                    "Для этого нажмите кнопку Старт\n")
+            conv.cancel()        
+            return False
+        
+        conv.cancel()
+        return answers      
+    
+async def onlyone_conversation(id_user, event_bot, question_id, cur_question):
+    '''
+    onlyone_conversation - Dialog for select only one option 
+    :param id_user: dialog for telegram user - id_user
+    :param event_bot: parent entity
+    :param question_id: index in dict question
+    :param cur_question: current question
+    '''
+    #sender = await event_bot.get_sender()
+    sender_id = await event_bot.get_sender().id
+    button=[]
+    bdata=''
+    answ_v=[]
+    answers=defaultdict(list)
+
+    async with bot.conversation(id_user) as conv:
+        def my_press_event(id_user):
+            return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
+        try:
+            button.clear()
+            str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
+            v=1
+            for variant in all_questions.get(cur_question):
+                bdata=f'VARIANT_{question_id}_{v}'
+                button.append([Button.inline(f'🔹 {variant}', bdata)])   
+                v=v+1
+            await conv.send_message(str_qst, buttons=button)            
+            #Нandle respond
+            handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
+            event_res = await handle 
+            button_pressed = event_res.data.decode('utf-8')
+            answ_v = button_pressed.replace('VARIANT_', '').split('_')
+            logging.info(f"Get respond button text:\n{question_id}\n{button_pressed}\n{answ_v}")
+            answers[question_id+1].append(answ_v[1])
+        except TimeoutError as error:
+            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
+            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+                                    "Результаты не будут сохранены.\n"\
+                                    "Пожалуйста пройдите опрос заново.\n"\
+                                    "Для этого нажмите кнопку Старт\n")
+            conv.cancel()
+            return False
+        
+    conv.cancel()        
+    return answers      
+
+async def select_conversation(id_user, event_bot, question_id, cur_question):
+    '''
+    select_conversation - Dialog for multi select option 
+    :param id_user: dialog for telegram user - id_user
+    :param event_bot: parent entity
+    :param question_id: index in dict question
+    :param cur_question: current question
+    '''
+    #sender = await event_bot.get_sender()
+    sender_id = await event_bot.get_sender().id
+    button=[]
+    bdata=''
+    answ_v=[]
+    answers=defaultdict(list)
+
+    async with bot.conversation(id_user) as conv:
+        def my_press_event(id_user):
+            return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
+        try:
+            button.clear()
+            str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
+            v=1
+            for variant in all_questions.get(cur_question):
+                bdata=f'VARIANT_{question_id}_{v}'
+                button.append([ Button.inline(f'🔘 {variant}', bdata)])
+                v=v+1           
+            await conv.send_message(str_qst, buttons=button)
+            while True:
+                #Нandle respond
+                handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
+                event_res = await handle 
+                button_pressed = event_res.data.decode('utf-8')                
+                if button_pressed.find('ANSWER_') == 0:
+                    answers[question_id+1].sort() 
+                    #TODO checj for not null answers               
+                    break
+                answ_v = button_pressed.replace('VARIANT_', '').split('_')
+                logging.info(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
+
+                if answ_v[2] in answers[question_id+1]:
+                    answers[question_id+1].remove(answ_v[1])
+                else:   
+                    answers[question_id+1].append(answ_v[1])
+
+                button.clear()
+                i=1
+                for variant in all_questions.get(cur_question):
+                    bdata=f'VARIANT_{question_id}_{i}'
+                    if str(i) in answers[question_id+1]:
+                        emoji='🟢'
+                    else:
+                        emoji='🔘'
+                    button.append([ Button.inline(f'{emoji} {variant}', bdata)])
+                    i=i+1
+                
+                bdata=f'ANSWER_{question_id}'
+                button.append([ Button.inline('Ответить', bdata)])
+                await bot.edit_message(event_res.query.user_id, event_res.query.msg_id,str_qst, buttons=button)
+        except TimeoutError as error:
+            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
+            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+                                    "Результаты не будут сохранены.\n"\
+                                    "Пожалуйста пройдите опрос заново.\n"\
+                                    "Для этого нажмите кнопку Старт\n")
+            conv.cancel()
+            return False
+
+    conv.cancel()            
+    return answers    
+
+async def new_run_anketa(id_user, event_bot, menu):
+    '''
+    run main process for anketting
+    '''
+    user_ent = await bot.get_entity(id_user)
+    nickname = user_ent.username
+    first_name = user_ent.first_name
+    question_id=0
+    answers=defaultdict(list)
+
+    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
+                            f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
+
+    for cur_question  in all_questions:
+        if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[0]: # simple questinon
+            answers = await simple_conversation(id_user, event_bot, question_id, cur_question)
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select questinon
+            answers = await select_conversation(id_user, event_bot, question_id, cur_question)
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[2]: # onlyone questinon
+            answers = await onlyone_conversation(id_user, event_bot, question_id, cur_question)
+        question_id = question_id + 1
+
+    logging.debug(f"Dict All answers: {answers}")
+
+    if not answers:
+        return False
+    else:    
+        # Write Answers to DB
+        async with dbm.DatabaseBot(sts.db_name) as db:     
+                await db.db_add_answer(id_user, first_name, nickname, answers)
+        await event_bot.send_message(f"🔆 Вы ответили на все вопросы.\n"\
+                                "Результаты сохранены.\n"
+                                "Для повторного прохождения опроса\n"\
+                                "нажмите кнопку Старт\n")
+        if menu: 
+                await create_admin_menu(menu, event_bot)
+
+        return True
+
 async def run_anketa(id_user, event_bot, menu):
     '''
     run main process for anketting
