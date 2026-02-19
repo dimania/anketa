@@ -579,7 +579,7 @@ async def check_user_run_anketa(id_user, event_bot, menu):
                 async with dbm.DatabaseBot(sts.db_name) as db:
                     await db.db_del_user_answers(id_user)
                 bot.remove_event_handler(callback_yn)
-                await run_anketa(id_user, event_bot, menu)                                      
+                await new_run_anketa(id_user, event_bot, menu)                                      
             return 0
     else:
         await run_anketa(id_user, event_bot, menu)       
