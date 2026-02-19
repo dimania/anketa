@@ -427,8 +427,9 @@ async def gen_excel(filename):
         answer_cur=dict(row).get('answer_user')
         logging.debug(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
         if all_questions.get(key_q):
-            data['answer_user'].append(all_questions.get(key_q)[int(answer_cur)-1])
-            data_ws2[key_q].append(all_questions.get(key_q)[int(answer_cur)-1])
+            for variant in list(answer_cur):
+                data['answer_user'].append(all_questions.get(key_q)[int(variant-1)])
+                data_ws2[key_q].append(all_questions.get(key_q)[int(variant-1)])
         else: 
             data['answer_user'].append(answer_cur)
             data_ws2[key_q].append(answer_cur)
@@ -774,7 +775,7 @@ async def new_run_anketa(id_user, event_bot, menu):
 
         return True
 
-async def run_anketa(id_user, event_bot, menu):
+async def run_anketa(id_user, event_bot, menu): #NOT USE
     '''
     run main process for anketting
     '''
