@@ -112,8 +112,11 @@ class DatabaseBot:
         cur_date = datetime.now()
 
         for ans in answers:
+            sep=', '
+            list_ans=sep.join(dict(answers).get(ans))
+            logging.debug(f"New string from list for write in db: {list_ans}")
             cursor = await self.db_modify("INSERT INTO Answers (id_user, name_user, nick_user, question_id, answer_user, date) VALUES(?, ?, ?, ?, ?, ? )",\
-                                ( id_user, name_user, nick_user, ans, dict(answers).get(ans),cur_date ))
+                                ( id_user, name_user, nick_user, ans, list_ans, cur_date ))
         if cursor: 
             #return str(cursor.lastrowid)
             return True
