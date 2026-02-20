@@ -407,7 +407,7 @@ async def set_dataframe_sheet1(rows):
     rows: raw data from db
     '''
     data=defaultdict(list)
-
+    lenq=len(all_questions)
     # Get name_user, nick_user, question, answer_user, date
     for row in rows:
         data['name_user'].append(dict(row).get('name_user'))       
