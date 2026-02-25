@@ -448,41 +448,53 @@ async def set_dataframe_sheet2(rows):
     Colums is: date, time, name_user, nick_user, question1, question2 ...
     rows: raw data from db
     '''
+    global_row=0
     data=defaultdict(list)
-    logging.info(f"DF2 LEN:\nlen={len(rows)}")
     # Get name_user, nick_user, question, answer_user, date
     for row in rows:
+        len_row = len(row)
+        logging.info(f"DF2 LEN:\nlen={len_row}")
+        if dict(row).get('name_user') not in data['name_user']:
+            data['name_user'].append(dict(row).get('name_user'))       
+            data['nick_user'].append(dict(row).get('nick_user'))
+            #2024-03-03 11:46:05.488155
+            dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
+            date = dt.strftime('%d.%m.%Y')
+            time = dt.strftime('%H:%M')
+            data['date'].append(date)
+            data['time'].append(time)
+        
         index=int(dict(row).get('question_id'))
         #data['question'].append(all_questions[index-1])
         key_q=list(all_questions)[index-1]
         answer_cur=dict(row).get('answer_user')
+        logging.info(f"DF2 ALL Q: Question={key_q}")
         if all_questions.get(key_q):
             i=False
             for variant in answer_cur.split(','): #FIXME HERE
-                logging.info(f"DF2 VARIANT:\nvariant({i})={variant}")
+                
+                logging.info(f"DF2 VARIANT:\nQuestion={key_q}\nvariant({i})={variant}")
                 data[key_q].append(all_questions.get(key_q)[int(variant)-1])
                 if i:
-                    data['name_user'].append('')       
-                    data['nick_user'].append('')        
-                    data['date'].append('')
-                    data['time'].append('')
+                    data['name_user'].append(' ')       
+                    data['nick_user'].append(' ')        
+                    data['date'].append(' ')
+                    data['time'].append(' ')
+                    j=0
+                    while j != len_row:
+                        #index=int(dict(row).get('question_id'))
+                        if j != index-1:
+                            key_q_tmp=list(all_questions)[j]
+                            #if not data[key_q_tmp]:
+                            data[key_q_tmp].append(' ')
+                        j=j+1
                 i=True
             continue    
         else: 
-            data[key_q].append(answer_cur)
-            
-        #2024-03-03 11:46:05.488155
-        dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
-        date = dt.strftime('%d.%m.%Y')
-        time = dt.strftime('%H:%M')
+            data[key_q].append(answer_cur)            
+       
 
-        if dict(row).get('name_user') not in data['name_user']:
-            data['name_user'].append(dict(row).get('name_user'))       
-            data['nick_user'].append(dict(row).get('nick_user'))        
-            data['date'].append(date)
-            data['time'].append(time)
-        else:
-            continue
+        
     logging.info(f"DF2 Results gen excel:\ndata:{data}")
     return data
 

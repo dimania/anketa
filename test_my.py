@@ -19,6 +19,7 @@ import docx
 import pandas as pd
 import numpy as np
 import math
+from collections import defaultdict
 
 
 def is_text_file(filename, blocksize=512):
@@ -163,8 +164,10 @@ def main():
     ad1=[]
     ss3[1]=['1','2','4']
     i = 3
+    data=defaultdict(list)
+    data[0]=' '
 
-    if str(i) in ss3[1]:
+    if data[0]:
         print('ok')
     else:
         print('no ok')
@@ -282,16 +285,26 @@ def main():
 #'date':        ['19.02.2026', '',         '',         '',         '19.02.2026','',          '19.02.2026',    '',         '19.02.2026', '19.02.2026'], 
 #'time':        ['14:53',      '',         '',         '',         '14:53',     '',           '14:53',        '',            '14:53',    '14:53']
 {
-    'text_q1': ['test1'], 
-    'name_user': ['Murhuhu', '', ''], 
-    'nick_user': ['murhuhu', '', ''], 
-    'date': ['19.02.2026', '', ''], 
-    'time': ['14:53', '', ''], 
-    'text_q2': ['variant1', 'variant2', 'variant4'], 
-    'text_q3': ['variant1'], 
-    'text_q4': ['variant2'], 
-    'text_q5': ['test5']
+    'text_q1':   ['test1'], 
+    'name_user': ['Murhuhu',    '',         ''], 
+    'nick_user': ['murhuhu',    '',         ''], 
+    'date':      ['19.02.2026', '',         ''], 
+    'time':      ['14:53',      '',         ''], 
+    'text_q2':   ['variant1',   'variant2', 'variant4'], 
+    'text_q3':   ['variant1'], 
+    'text_q4':   ['variant2'], 
+    'text_q5':   ['test5']
 }
+
+{'name_user': ['Murhuhu', '', ''], 
+ 'nick_user': ['murhuhu', '', ''], 
+ 'date': ['19.02.2026', '', ''], 
+ 'time': ['14:53', '', ''], 
+ 'text_q1': ['test1'], 
+ 'text_q2': ['variant1', 'variant2', 'variant4'], 
+ 'text_q3': ['', '', 'variant1'], 
+ 'text_q4': ['', '', 'variant2'], 
+ 'text_q5': ['', '', 'test5']}
 
             
 if __name__ == '__main__':
