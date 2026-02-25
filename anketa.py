@@ -449,6 +449,7 @@ async def set_dataframe_sheet2(rows):
     rows: raw data from db
     '''
     global_row=0
+    variant_row=0
     data=defaultdict(list)
     # Get name_user, nick_user, question, answer_user, date
     for row in rows:
@@ -463,18 +464,21 @@ async def set_dataframe_sheet2(rows):
             time = dt.strftime('%H:%M')
             data['date'].append(date)
             data['time'].append(time)
+            global_row = global_row + variant_row
+            logging.info(f"DF2 VARIANT:\nGlobal_row={global_row} Question={key_q} variant({i})={variant}")
         
         index=int(dict(row).get('question_id'))
         #data['question'].append(all_questions[index-1])
         key_q=list(all_questions)[index-1]
-        answer_cur=dict(row).get('answer_user')
-        logging.info(f"DF2 ALL Q: Question={key_q}")
+        answer_cur=dict(row).get('answer_user')        
+        #logging.info(f"DF2 ALL Q: Question={key_q}")
+
         if all_questions.get(key_q):
             i=False
+            #variant_row = variant_row + 1 
             for variant in answer_cur.split(','): #FIXME HERE
-                
-                logging.info(f"DF2 VARIANT:\nQuestion={key_q}\nvariant({i})={variant}")
-                data[key_q].append(all_questions.get(key_q)[int(variant)-1])
+                logging.info(f"DF2 VARIANT:\nGlobal_row={global_row} Question={key_q} variant({i})={variant}")
+                data[key_q].insert(global_row,all_questions.get(key_q)[int(variant)-1])
                 if i:
                     data['name_user'].append(' ')       
                     data['nick_user'].append(' ')        
@@ -482,17 +486,18 @@ async def set_dataframe_sheet2(rows):
                     data['time'].append(' ')
                     j=0
                     while j != len_row:
-                        #index=int(dict(row).get('question_id'))
                         if j != index-1:
                             key_q_tmp=list(all_questions)[j]
                             #if not data[key_q_tmp]:
                             data[key_q_tmp].append(' ')
                         j=j+1
+                variant_row = variant_row + 1
                 i=True
             continue    
         else: 
-            data[key_q].append(answer_cur)            
-       
+            #data[key_q].append(answer_cur)
+            data[key_q].insert(global_row,answer_cur)
+            logging.info(f"\nDF2 global_row:{global_row}")
 
         
     logging.info(f"DF2 Results gen excel:\ndata:{data}")
