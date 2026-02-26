@@ -377,7 +377,7 @@ async def send_report(event):
     
     fname = f"reports/report_{dt}.xlsx"
     logging.debug(f"Gen filename: {fname}")
-    res = await new_gen_excel(fname)
+    res = await gen_excel(fname)
     return True
 
 async def test_send_report(event):
@@ -587,10 +587,8 @@ async def gen_excel(filename):
     data_ws2['nick_user']=[]
    
 
-    # Init collums for question
-    for qst in  all_questions:
-        data_ws2[qst]=[]
-
+    data=defaultdict(list)
+    data_ws2=defaultdict(list)
     
     async with dbm.DatabaseBot(sts.db_name) as db:
         rows = await db.get_info_for_report()
@@ -608,9 +606,9 @@ async def gen_excel(filename):
         answer_cur=dict(row).get('answer_user')
         logging.debug(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
         if all_questions.get(key_q):
-            for variant in answer_cur.split(','): #FIXME HERE
-                data['answer_user'].append(all_questions.get(key_q)[int(variant)-1])
-                data_ws2[key_q].append(all_questions.get(key_q)[int(variant)-1])
+            #for variant in answer_cur.split(','): #FIXME HERE
+            data['answer_user'].append(all_questions.get(key_q)[int(variant)-1])
+            data_ws2[key_q].append(all_questions.get(key_q)[int(variant)-1])
         else: 
             data['answer_user'].append(answer_cur)
             data_ws2[key_q].append(answer_cur)
@@ -628,7 +626,7 @@ async def gen_excel(filename):
             data_ws2['time'].append(time)
         else:
             continue
-
+    logging.info(f"Results gen excel: {data}")
     df = pd.DataFrame(data)
     logging.info(f"Results gen excel: ws2: {data_ws2}")
     df1 = pd.DataFrame(data_ws2)
