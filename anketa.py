@@ -25,6 +25,8 @@ import pandas as pd
 import filetype
 import docx
 from collections import defaultdict
+from fpdf import FPDF
+
 #from requests.packages.urllib3.util.retry import Retry
 # --------------------------------
 import settings as sts
@@ -367,7 +369,7 @@ async def show_stats(event):
   
     return True 
 
-async def send_report(event):
+async def test_send_report(event):
     '''
     send Answers DB to Admin (load results)
     '''
@@ -380,7 +382,7 @@ async def send_report(event):
     res = await gen_excel(fname)
     return True
 
-async def test_send_report(event):
+async def send_report(event):
     '''
     send Answers DB to Admin (load results)
     '''
@@ -606,9 +608,12 @@ async def gen_excel(filename):
         answer_cur=dict(row).get('answer_user')
         logging.debug(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
         if all_questions.get(key_q):
-            #for variant in answer_cur.split(','): #FIXME HERE
-            data['answer_user'].append(all_questions.get(key_q)[int(variant)-1])
-            data_ws2[key_q].append(all_questions.get(key_q)[int(variant)-1])
+            var_answer=''
+            for variant in answer_cur.split(','): #FIXME HERE
+                var_answer=var_answer+','+all_questions.get(key_q)[int(variant)-1]
+
+            data['answer_user'].append(var_answer)
+            data_ws2[key_q].append(var_answer)
         else: 
             data['answer_user'].append(answer_cur)
             data_ws2[key_q].append(answer_cur)
@@ -679,7 +684,45 @@ async def gen_excel(filename):
     writer.close()
     
     return True
+
+async def gen_pdf(answers, fname):
+    '''
+    Generate pdf file
+    '''
+
+    # Create an instance of the FPDF class (portrait, millimeters, A4 format by default)
+    pdf = FPDF()
+    # Add a page
+    pdf.add_page()
+    # Add a Unicode system font (using full path)
+    #pdf.add_font('sysfont', '', r"c:\WINDOWS\Fonts\arial.ttf", uni=True)
+    pdf.add_font('DejaVu', '', 'DejaVuSansCondensed.ttf', uni=True)
+    pdf.add_font('DejaVu-Bold', '', 'DejaVuSansCondensed-Bold.ttf', uni=True)
+    pdf.set_font('DejaVu-Bold', '', 16)
+    # Add a cell (width=200, height=10, text, add new line=True, align=Center)
+    pdf.cell(200, 10, txt="Анкета", ln=True, align='C')
+
+    i=1
+    for qst in all_questions:
+        message = f"{i}. {qst}"
+        pdf.set_font('DejaVu-Bold', '', 16)
+        pdf.cell(200, 10, txt=message, ln=True, align='L')
+        pdf.set_font('DejaVu', '', 14)
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # select or onlyone
+            for cur_var in answers[i]:
+                ans=all_questions.get(qst)[int(cur_var)-1]
+                pdf.cell(200, 10, txt=str(ans), ln=True, align='L')
+        else: #simple        
+            ans = str(answers[i][0])
+            pdf.cell(200, 10, txt=ans, ln=True, align='L')
+        i=i+1
     
+    # Save the PDF to a file named 'output.pdf'
+    pdf.output(fname)
+    logging.info(f"PDF generated successfully as {fname}")
+
+
+
 async def get_qusetion_data(event_bot):
     '''
     get and load questions to DB Questions
@@ -762,7 +805,7 @@ async def check_user_run_anketa(id_user, event_bot, menu):
                 await new_run_anketa(id_user, event_bot, menu)                                      
             return 0
     else:
-        await run_anketa(id_user, event_bot, menu)       
+        await new_run_anketa(id_user, event_bot, menu)       
         return 2
 
 async def simple_conversation(id_user, event_bot, question_id, cur_question):
@@ -807,8 +850,9 @@ async def onlyone_conversation(id_user, event_bot, question_id, cur_question):
     :param question_id: index in dict question
     :param cur_question: current question
     '''
-    #sender = await event_bot.get_sender()
-    sender_id = await event_bot.get_sender().id
+    sender = await event_bot.get_sender()
+    sender_id = sender.id
+    #sender_id = await event_bot.get_sender().id
     button=[]
     bdata=''
     answ_v=[]
@@ -853,8 +897,9 @@ async def select_conversation(id_user, event_bot, question_id, cur_question):
     :param question_id: index in dict question
     :param cur_question: current question
     '''
-    #sender = await event_bot.get_sender()
-    sender_id = await event_bot.get_sender().id
+    sender = await event_bot.get_sender()
+    sender_id = sender.id
+    #sender_id = await event_bot.get_sender().id
     button=[]
     bdata=''
     answ_v=[]
@@ -864,6 +909,9 @@ async def select_conversation(id_user, event_bot, question_id, cur_question):
         def my_press_event(id_user):
             return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
+            #sender_id = await event_bot.get_sender().id
+            sender = await event_bot.get_sender()
+            sender_id = sender.id
             button.clear()
             str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
             v=1
@@ -879,12 +927,12 @@ async def select_conversation(id_user, event_bot, question_id, cur_question):
                 button_pressed = event_res.data.decode('utf-8')                
                 if button_pressed.find('ANSWER_') == 0:
                     answers[question_id+1].sort() 
-                    #TODO checj for not null answers               
+                    #TODO check for not null answers               
                     break
                 answ_v = button_pressed.replace('VARIANT_', '').split('_')
                 logging.info(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
 
-                if answ_v[2] in answers[question_id+1]:
+                if answ_v[1] in answers[question_id+1]: # FIXME XZ!!!!! was answ_v[2]
                     answers[question_id+1].remove(answ_v[1])
                 else:   
                     answers[question_id+1].append(answ_v[1])
@@ -924,18 +972,27 @@ async def new_run_anketa(id_user, event_bot, menu):
     first_name = user_ent.first_name
     question_id=0
     answers=defaultdict(list)
+    res=defaultdict(list)
+    
 
     await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
                             f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
     for cur_question  in all_questions:
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[0]: # simple questinon
-            answers = await simple_conversation(id_user, event_bot, question_id, cur_question)
+            res = await simple_conversation(id_user, event_bot, question_id, cur_question)
+
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select questinon
-            answers = await select_conversation(id_user, event_bot, question_id, cur_question)
+            res = await select_conversation(id_user, event_bot, question_id, cur_question)
+
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[2]: # onlyone questinon
-            answers = await onlyone_conversation(id_user, event_bot, question_id, cur_question)
-        question_id = question_id + 1
+            res = await onlyone_conversation(id_user, event_bot, question_id, cur_question)
+
+        logging.debug(f"Dict res answers: {res}")
+        question_id=question_id+1
+
+        if res:
+            answers.update(res)
 
     logging.debug(f"Dict All answers: {answers}")
 
@@ -945,10 +1002,17 @@ async def new_run_anketa(id_user, event_bot, menu):
         # Write Answers to DB
         async with dbm.DatabaseBot(sts.db_name) as db:     
                 await db.db_add_answer(id_user, first_name, nickname, answers)
-        await event_bot.send_message(f"🔆 Вы ответили на все вопросы.\n"\
-                                "Результаты сохранены.\n"
-                                "Для повторного прохождения опроса\n"\
-                                "нажмите кнопку Старт\n")
+        message=f"🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n"
+
+        await bot.send_message(id_user, message)
+
+        dt = datetime.now().strftime('%d%m%Y_%H%M%S')
+        fname = f"reports/rpt_{id_user}_{dt}.pdf"
+        logging.debug(f"Gen pdf filename: {fname}")
+        await gen_pdf(answers,fname)
+        message="📊 Ваш отчет"
+        await bot.send_file( id_user, fname, caption=message, parse_mode="html" ) 
+        await asyncio.sleep(1) # Delay for user after send report and show menu
         if menu: 
                 await create_admin_menu(menu, event_bot)
 
