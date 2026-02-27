@@ -35,6 +35,28 @@ import dbmodule as dbm
 #Glogal vars
 bot = None
 
+class PDF(FPDF):
+    def header(self):
+        # Logo
+        self.image('logo_pb.png', 10, 8, 33)
+        # Arial bold 15
+        self.set_font('Arial', 'B', 15)
+        # Move to the right
+        self.cell(80)
+        # Title
+        self.cell(30, 10, 'Title', 1, 0, 'C')
+        # Line break
+        self.ln(20)
+
+    # Page footer
+    def footer(self):
+        # Position at 1.5 cm from bottom
+        self.set_y(-15)
+        # Arial italic 8
+        self.set_font('Arial', 'I', 8)
+        # Page number
+        self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
+
 async def add_admins(event):
     ''' Select users for add to admins list
         event = bot event handled id
@@ -696,8 +718,8 @@ async def gen_pdf(answers, fname):
     pdf.add_page()
     # Add a Unicode system font (using full path)
     #pdf.add_font('sysfont', '', r"c:\WINDOWS\Fonts\arial.ttf", uni=True)
-    pdf.add_font('DejaVu', '', 'DejaVuSansCondensed.ttf', uni=True)
-    pdf.add_font('DejaVu-Bold', '', 'DejaVuSansCondensed-Bold.ttf', uni=True)
+    pdf.add_font('DejaVu', '', 'fonts\DejaVuSansCondensed.ttf', uni=True)
+    pdf.add_font('DejaVu-Bold', '', 'fonts\DejaVuSansCondensed-Bold.ttf', uni=True)
     pdf.set_font('DejaVu-Bold', '', 16)
     # Add a cell (width=200, height=10, text, add new line=True, align=Center)
     pdf.cell(200, 10, txt="Анкета", ln=True, align='C')
@@ -720,8 +742,6 @@ async def gen_pdf(answers, fname):
     # Save the PDF to a file named 'output.pdf'
     pdf.output(fname)
     logging.info(f"PDF generated successfully as {fname}")
-
-
 
 async def get_qusetion_data(event_bot):
     '''

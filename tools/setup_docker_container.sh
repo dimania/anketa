@@ -22,6 +22,7 @@ cp ${SRC}/requirements.txt $temp_dir
 #cp -R ${SRC}/locales $temp_dir
 cp -R ${SRC}/reports $temp_dir
 cp -R ${SRC}/questionfiles $temp_dir
+cp -R ${SRC}/fonts $temp_dir
 mkdir $temp_dir/logs
 mkdir $temp_dir/session
 mkdir $temp_dir/data
