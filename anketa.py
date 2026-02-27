@@ -38,13 +38,19 @@ bot = None
 class PDF(FPDF):
     def header(self):
         # Logo
-        self.image('logo_pb.png', 10, 8, 33)
+        self.image('logo.jpg', 5, 2, 20)
         # Arial bold 15
-        self.set_font('Arial', 'B', 15)
+        self.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf', uni=True)
+        self.set_font('DejaVu-Bold', '', 16)
         # Move to the right
         self.cell(80)
         # Title
-        self.cell(30, 10, 'Title', 1, 0, 'C')
+        self.cell(30, 10, 'Анкета', 0, 0, 'C')
+        # Write Date Time
+        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf', uni=True)
+        self.set_font('DejaVu', '', 8)
+        dt = datetime.now().strftime('%d%m%Y %H%M%S')
+        self.cell(30, 10, 'Анкета', 0, 0, 'C')
         # Line break
         self.ln(20)
 
@@ -53,9 +59,10 @@ class PDF(FPDF):
         # Position at 1.5 cm from bottom
         self.set_y(-15)
         # Arial italic 8
-        self.set_font('Arial', 'I', 8)
+        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf', uni=True)
+        self.set_font('DejaVu', '', 8)
         # Page number
-        self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
+        self.cell(0, 10, str(self.page_no()) + '/{nb}', 0, 0, 'C')
 
 async def add_admins(event):
     ''' Select users for add to admins list
@@ -713,16 +720,19 @@ async def gen_pdf(answers, fname):
     '''
 
     # Create an instance of the FPDF class (portrait, millimeters, A4 format by default)
-    pdf = FPDF()
+    pdf = PDF()
+
+    pdf.alias_nb_pages()
     # Add a page
     pdf.add_page()
     # Add a Unicode system font (using full path)
     #pdf.add_font('sysfont', '', r"c:\WINDOWS\Fonts\arial.ttf", uni=True)
-    pdf.add_font('DejaVu', '', 'fonts\DejaVuSansCondensed.ttf', uni=True)
-    pdf.add_font('DejaVu-Bold', '', 'fonts\DejaVuSansCondensed-Bold.ttf', uni=True)
-    pdf.set_font('DejaVu-Bold', '', 16)
+    pdf.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf', uni=True)
+    pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf', uni=True)
+
+    #pdf.set_font('DejaVu-Bold', '', 16)
     # Add a cell (width=200, height=10, text, add new line=True, align=Center)
-    pdf.cell(200, 10, txt="Анкета", ln=True, align='C')
+    #pdf.cell(200, 10, txt="Анкета", ln=True, align='C')
 
     i=1
     for qst in all_questions:
