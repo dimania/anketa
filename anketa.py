@@ -40,26 +40,28 @@ class PDF(FPDF):
         # Logo
         self.image('logo.jpg', 5, 2, 20)
         # Arial bold 15
-        self.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf', uni=True)
+        self.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
         self.set_font('DejaVu-Bold', '', 16)
         # Move to the right
         self.cell(80)
         # Title
         self.cell(30, 10, 'Анкета', 0, 0, 'C')
         # Write Date Time
-        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf', uni=True)
+        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
         self.set_font('DejaVu', '', 8)
-        dt = datetime.now().strftime('%d%m%Y %H%M%S')
-        self.cell(30, 10, 'Анкета', 0, 0, 'C')
+        dt = datetime.now().strftime('%d.%m.%Y %H:%M')
+        #self.cell(80)
+        self.cell(75, 0, dt, 0, 0, 'R')
         # Line break
         self.ln(20)
+        self.line(10, 30, 200, 30)
 
     # Page footer
     def footer(self):
         # Position at 1.5 cm from bottom
         self.set_y(-15)
         # Arial italic 8
-        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf', uni=True)
+        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
         self.set_font('DejaVu', '', 8)
         # Page number
         self.cell(0, 10, str(self.page_no()) + '/{nb}', 0, 0, 'C')
@@ -726,9 +728,9 @@ async def gen_pdf(answers, fname):
     # Add a page
     pdf.add_page()
     # Add a Unicode system font (using full path)
-    #pdf.add_font('sysfont', '', r"c:\WINDOWS\Fonts\arial.ttf", uni=True)
-    pdf.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf', uni=True)
-    pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf', uni=True)
+    #pdf.add_font('sysfont', '', r"c:\WINDOWS\Fonts\arial.ttf")
+    pdf.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
+    pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
 
     #pdf.set_font('DejaVu-Bold', '', 16)
     # Add a cell (width=200, height=10, text, add new line=True, align=Center)
@@ -738,15 +740,22 @@ async def gen_pdf(answers, fname):
     for qst in all_questions:
         message = f"{i}. {qst}"
         pdf.set_font('DejaVu-Bold', '', 16)
-        pdf.cell(200, 10, txt=message, ln=True, align='L')
+        #pdf.multi_cell(200, 10, text=message, align='L')
+        pdf.write(text=message)
+        pdf.ln(10)
         pdf.set_font('DejaVu', '', 14)
         if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # select or onlyone
             for cur_var in answers[i]:
                 ans=all_questions.get(qst)[int(cur_var)-1]
-                pdf.cell(200, 10, txt=str(ans), ln=True, align='L')
+                #pdf.multi_cell(200, 10, text=str(ans), align='L')
+                pdf.write(text=str(ans))
+                pdf.ln(10)
         else: #simple        
             ans = str(answers[i][0])
-            pdf.cell(200, 10, txt=ans, ln=True, align='L')
+            pdf.write(text=ans)
+            pdf.ln(10)
+            #pdf.cell(200, 10, txt=ans, ln=True, align='L')
+            
         i=i+1
     
     # Save the PDF to a file named 'output.pdf'
