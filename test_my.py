@@ -26,7 +26,7 @@ async def gen_excel(filename):
     '''
     data={}
     data['name_user']=[]
-    data['nick_user']=[]
+    data['nick_user']=[] 
     data['question']=[]
     data['answer_user']=[]
     data['date']=[]
