@@ -24,7 +24,7 @@ CUSER_MENU = 2
 LIST_REC_IN_MSG = 20
 RETRIES_DB_LOCK = 5
 #Timeout for answer user in sec
-TIMEOUT_FOR_ANSWER = 60
+TIMEOUT_FOR_ANSWER = 120
 # Type of qestions: 
 # simple - text answer
 # select - multi selection dialog
@@ -49,6 +49,7 @@ type_questions = None
 all_questions = None
 Admins = {}
 Builtin_admin = None
+report_logo = None
 
 
 def get_config(config=cfg):
@@ -73,6 +74,7 @@ def get_config(config=cfg):
     global type_questions
     global Admins
     global Builtin_admin
+    global report_logo
 
     cursor = None
     connection = None
@@ -84,7 +86,8 @@ def get_config(config=cfg):
         logfile = config.logfile
         use_proxy = config.use_proxy
         log_level = config.log_level
-        Builtin_admin = config.Builtin_admin      
+        Builtin_admin = config.Builtin_admin
+        report_logo = config.report_logo
         
         # May be comment out in config.py
         if 'API_ID' in vars(config):

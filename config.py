@@ -56,6 +56,9 @@ proxies = {
 #Log file name for write logs programm
 logfile = 'nnmbot.log'
 
+#Report logo image file name for insert in report user
+report_logo = 'logo.jpg'
+
 #Use proxy or d'not
 use_proxy = 0 # if use proxy set to 1
 

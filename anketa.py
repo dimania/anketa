@@ -38,7 +38,7 @@ bot = None
 class PDF(FPDF):
     def header(self):
         # Logo
-        self.image('logo.jpg', 5, 2, 20)
+        self.image(sts.report_logo, 5, 2, 20)
         # Arial bold 15
         self.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
         self.set_font('DejaVu-Bold', '', 16)
@@ -55,6 +55,7 @@ class PDF(FPDF):
         # Line break
         self.ln(20)
         self.line(10, 30, 200, 30)
+        self.ln(10)
 
     # Page footer
     def footer(self):
@@ -328,7 +329,7 @@ async def get_new_questions(fname):
         i=False
         # variants answer to list values dict        
         for x, y in zip(item,nan_list):
-            logging.debug(f'X_Y:{x}_{y}')
+            logging.debug(f'i_X_Y:{i},{x},{y}')
             if not y and i:
                 val.append(x) 
             i=True
