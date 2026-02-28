@@ -318,7 +318,7 @@ async def get_new_questions(fname):
     for item in text_content['data']:
         #item - one question and variants answers if exist
         type_current_qusetion=item.pop(0)
-        logging.info(f'if {type_current_qusetion} not in {sts.TYPES_OF_QUESTONS}')
+        logging.debug(f'if {type_current_qusetion} not in {sts.TYPES_OF_QUESTONS}')
         if type_current_qusetion not in sts.TYPES_OF_QUESTONS:
             #raise ValueError("Type of question invald!")
             return False,False
@@ -720,46 +720,40 @@ async def gen_excel(filename):
 async def gen_pdf(answers, fname):
     '''
     Generate pdf file
-    '''
 
+    answers: dict answers all users
+    fname:   filename for report
+    '''
     # Create an instance of the FPDF class (portrait, millimeters, A4 format by default)
     pdf = PDF()
 
     pdf.alias_nb_pages()
     # Add a page
     pdf.add_page()
-    # Add a Unicode system font (using full path)
-    #pdf.add_font('sysfont', '', r"c:\WINDOWS\Fonts\arial.ttf")
     pdf.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
     pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
-
-    #pdf.set_font('DejaVu-Bold', '', 16)
-    # Add a cell (width=200, height=10, text, add new line=True, align=Center)
-    #pdf.cell(200, 10, txt="Анкета", ln=True, align='C')
 
     i=1
     for qst in all_questions:
         message = f"{i}. {qst}"
         pdf.set_font('DejaVu-Bold', '', 16)
-        #pdf.multi_cell(200, 10, text=message, align='L')
+        pdf.set_left_margin(10)
         pdf.write(text=message)
         pdf.ln(10)
         pdf.set_font('DejaVu', '', 14)
         if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # select or onlyone
             for cur_var in answers[i]:
                 ans=all_questions.get(qst)[int(cur_var)-1]
-                #pdf.multi_cell(200, 10, text=str(ans), align='L')
+                pdf.set_left_margin(20)
                 pdf.write(text=str(ans))
                 pdf.ln(10)
-        else: #simple        
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0]: #simple        
             ans = str(answers[i][0])
+            pdf.set_left_margin(20)
             pdf.write(text=ans)
             pdf.ln(10)
-            #pdf.cell(200, 10, txt=ans, ln=True, align='L')
-            
         i=i+1
-    
-    # Save the PDF to a file named 'output.pdf'
+    # Save the PDF to a file 
     pdf.output(fname)
     logging.info(f"PDF generated successfully as {fname}")
 
@@ -785,7 +779,7 @@ async def get_qusetion_data(event_bot):
         #logging.debug(f"Get NewMessage event_bot: {event}")      
         if event.message.document:
             download_path = await event.message.download_media(file="questionfiles/") 
-            logging.info(f'File saved to: {download_path}')                                   
+            logging.info(f'File with questions saved to: {download_path}')                                   
             #with open(download_path, 'r', encoding="utf-8") as file:
             #    new_questions = [line.strip() for line in file.readlines()]
             new_type_questions, new_questions = await get_new_questions(download_path)
@@ -798,8 +792,8 @@ async def get_qusetion_data(event_bot):
             type_questions.clear()   
             all_questions.update(new_questions)
             type_questions.update(new_type_questions)
-            logging.info(f'New all_questions: {all_questions}')
-            logging.info(f'New type_questions: {type_questions}')
+            logging.debug(f'New all_questions: {all_questions}')
+            logging.debug(f'New type_questions: {type_questions}')
             async with dbm.DatabaseBot(sts.db_name) as db:
                 await db.db_rewrite_new_questions(all_questions,type_questions)
 
@@ -1021,12 +1015,16 @@ async def new_run_anketa(id_user, event_bot, menu):
     for cur_question  in all_questions:
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[0]: # simple questinon
             res = await simple_conversation(id_user, event_bot, question_id, cur_question)
-
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select questinon
             res = await select_conversation(id_user, event_bot, question_id, cur_question)
-
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[2]: # onlyone questinon
             res = await onlyone_conversation(id_user, event_bot, question_id, cur_question)
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[3]: # header
+            await bot.send_message(id_user, cur_question, parse_mode="html")
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[4]: # footer
+            await bot.send_message(id_user, cur_question, parse_mode="html")
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[5]: # text
+            await bot.send_message(id_user, cur_question, parse_mode="html")
 
         logging.debug(f"Dict res answers: {res}")
         question_id=question_id+1
@@ -1183,7 +1181,10 @@ async def show_qusetions(event_bot):
     i=1
     message="🧐 Текущие вопросы:"
     for qst in all_questions:
-        message = message + f"\n{i}.{qst}\n"
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0]: # simple
+            message = message + f"\n{i}.{qst}\n"
+        else:
+            message = message + f"\n{qst}\n"
         for variant in all_questions.get(qst):
             if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1]: # select 
                 emoji='🔘'

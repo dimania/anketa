@@ -29,6 +29,12 @@ services:
         - type: bind
           source: /home/dima/opt/anketa/session
           target: /home/anketa/session
+
+          # mount logo file 
+          # settings path logo file must be changed in config file!
+        - type: bind
+          source: /home/dima/opt/anketa/logo.jpg
+          target: /home/anketa/logo.jpg
           
     # Critical secret keys can set over env vars 
     env_file:

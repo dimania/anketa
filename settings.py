@@ -29,7 +29,7 @@ TIMEOUT_FOR_ANSWER = 120
 # simple - text answer
 # select - multi selection dialog
 # onlyone - select oly one answer from list
-TYPES_OF_QUESTONS = ["simple", "select", "onlyone"]
+TYPES_OF_QUESTONS = ["simple", "select", "onlyone","header","footer","text"]
 
 api_id = None
 api_hash = None
