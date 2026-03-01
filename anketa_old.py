@@ -5,26 +5,26 @@
   
 '''
 
-#import io
-from collections import defaultdict
+import io
 import re
 import logging
 import asyncio
 import os.path
 import sys
-#import gettext
+import gettext
 import json
 from datetime import datetime
 import requests
 from telethon import TelegramClient, events
-#from telethon.tl.types import  PeerChannel, PeerUser, UpdateNewMessage
+from telethon.tl.types import  PeerChannel, PeerUser, UpdateNewMessage
 from telethon.tl.custom import Button
-#from telethon import errors
-#from telethon.events import StopPropagation
+from telethon import errors
+from telethon.events import StopPropagation
 from telethon.sessions import StringSession
 import pandas as pd
 import filetype
 import docx
+from collections import defaultdict
 from fpdf import FPDF
 
 #from requests.packages.urllib3.util.retry import Retry
@@ -36,29 +36,22 @@ import dbmodule as dbm
 bot = None
 
 class PDF(FPDF):
-    
-    #def __init__(self):
-    #    # Add ttf fonts
-    #    self.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
-    #   self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
-
     def header(self):
         # Logo
         self.image(sts.report_logo, 5, 2, 20)
         # Arial bold 15
         self.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
-        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
-
         self.set_font('DejaVu-Bold', '', 16)
         # Move to the right
         self.cell(80)
         # Title
-        self.cell(30, 10, text='Анкета', border=0, align='C')
-        
-        # Write date and time creation report
+        self.cell(30, 10, 'Анкета', 0, 0, 'C')
+        # Write Date Time
+        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
         self.set_font('DejaVu', '', 8)
         dt = datetime.now().strftime('%d.%m.%Y %H:%M')
-        self.cell(75, 0, text=dt, border=0, align='R')
+        #self.cell(80)
+        self.cell(75, 0, dt, 0, 0, 'R')
         # Line break
         self.ln(20)
         self.line(10, 30, 200, 30)
@@ -68,9 +61,11 @@ class PDF(FPDF):
     def footer(self):
         # Position at 1.5 cm from bottom
         self.set_y(-15)
+        # Arial italic 8
+        self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
         self.set_font('DejaVu', '', 8)
         # Page number
-        self.cell(0, 10, text=str(self.page_no()) + '/{nb}', border=0, align='C')
+        self.cell(0, 10, str(self.page_no()) + '/{nb}', 0, 0, 'C')
 
 async def add_admins(event):
     ''' Select users for add to admins list
@@ -735,8 +730,8 @@ async def gen_pdf(answers, fname):
     pdf.alias_nb_pages()
     # Add a page
     pdf.add_page()
-    #pdf.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
-    #pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
+    pdf.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
+    pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
 
     i=1
     j=1
@@ -1028,6 +1023,12 @@ async def new_run_anketa(id_user, event_bot, menu):
     if sts.timeout_warning:
         await event_bot.respond(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
+    #if sts.timeout_warning:
+    #    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
+    #                        f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
+    #else:
+    #    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов.\n\n")
+
     for cur_question  in all_questions:
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[0]: # simple questinon
             res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
@@ -1077,7 +1078,7 @@ async def new_run_anketa(id_user, event_bot, menu):
         await bot.send_file( id_user, fname, caption=message, parse_mode="html" )
         #await asyncio.sleep(1) # Delay for user after send report and show menu
         if menu: 
-            await create_admin_menu(menu, event_bot)
+                await create_admin_menu(menu, event_bot)
 
         return True
     

@@ -4,17 +4,17 @@
 # If run in other location change SRC var
 
 SRC='../'
-NAME_IMAGE='dimania/anketa3'
+NAME_IMAGE='dimania/anketa4'
 
 # copy files for container to tmp
 
 temp_dir=$(mktemp -d)
 trap 'rm -rf "$temp_dir"' EXIT
 
-sed -i 's/import myconfig as cfg/import config as cfg/g' ${SRC}/settings.py
 cp ${SRC}/anketa.py $temp_dir
 cp ${SRC}/dbmodule.py $temp_dir
 cp ${SRC}/settings.py $temp_dir
+sed -i 's/import myconfig as cfg/import config as cfg/g' ${temp_dir}/settings.py
 cp ${SRC}/config.py $temp_dir
 cp ${SRC}/README.MD $temp_dir
 cp ${SRC}/LICENSE $temp_dir
