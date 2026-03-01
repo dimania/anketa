@@ -65,6 +65,9 @@ use_proxy = False # if use proxy set to 1
 # Send warning for timeout answer to user  
 timeout_warning = True
 
+# Set timeout for answer one question
+timeout_for_answer = 120
+
 #Set logging level for bot
 #Possible value: NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL  
 log_level='INFO'

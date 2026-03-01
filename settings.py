@@ -77,6 +77,7 @@ def get_config(config=cfg):
     global Builtin_admin
     global report_logo
     global timeout_warning
+    global TIMEOUT_FOR_ANSWER
 
     cursor = None
     connection = None
@@ -91,7 +92,10 @@ def get_config(config=cfg):
         Builtin_admin = config.Builtin_admin
         report_logo = config.report_logo
         timeout_warning = config.timeout_warning
-        
+
+        if 'timeout_for_answer' in vars(config):
+            TIMEOUT_FOR_ANSWER = config.timeout_for_answer
+
         # May be comment out in config.py
         if 'API_ID' in vars(config):
             api_id = config.API_ID

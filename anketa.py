@@ -1041,22 +1041,28 @@ async def new_run_anketa(id_user, event_bot, menu):
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[3]: # header
             await bot.send_message(id_user, cur_question, parse_mode="html")
+            question_id=question_id+1
+            continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[4]: # footer
             await bot.send_message(id_user, cur_question, parse_mode="html")
+            question_id=question_id+1
+            continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[5]: # text
             await bot.send_message(id_user, cur_question, parse_mode="html")
+            question_id=question_id+1
+            continue
 
         logging.debug(f"Dict res answers: {res}")
         question_id=question_id+1
 
         if res:
             answers.update(res)
+        else:
+            return False 
 
     logging.debug(f"Dict All answers: {answers}")
 
-    if not answers:
-        return False
-    else:    
+    if answers:
         # Write Answers to DB
         async with dbm.DatabaseBot(sts.db_name) as db:     
                 await db.db_add_answer(id_user, first_name, nickname, answers)
@@ -1075,6 +1081,8 @@ async def new_run_anketa(id_user, event_bot, menu):
                 await create_admin_menu(menu, event_bot)
 
         return True
+    
+    return False
 
 async def run_anketa(id_user, event_bot, menu): #NOT USE
     '''
