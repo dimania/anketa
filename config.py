@@ -60,7 +60,10 @@ logfile = 'nnmbot.log'
 report_logo = 'logo.jpg'
 
 #Use proxy or d'not
-use_proxy = 0 # if use proxy set to 1
+use_proxy = False # if use proxy set to 1
+
+# Send warning for timeout answer to user  
+timeout_warning = True
 
 #Set logging level for bot
 #Possible value: NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL  

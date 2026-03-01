@@ -50,6 +50,7 @@ all_questions = None
 Admins = {}
 Builtin_admin = None
 report_logo = None
+timeout_warning = True
 
 
 def get_config(config=cfg):
@@ -75,6 +76,7 @@ def get_config(config=cfg):
     global Admins
     global Builtin_admin
     global report_logo
+    global timeout_warning
 
     cursor = None
     connection = None
@@ -88,6 +90,7 @@ def get_config(config=cfg):
         log_level = config.log_level
         Builtin_admin = config.Builtin_admin
         report_logo = config.report_logo
+        timeout_warning = config.timeout_warning
         
         # May be comment out in config.py
         if 'API_ID' in vars(config):

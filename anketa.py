@@ -640,12 +640,12 @@ async def gen_excel(filename):
         answer_cur=dict(row).get('answer_user')
         logging.debug(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
         if all_questions.get(key_q):
-            var_answer=''
+            list_answer=[]
             for variant in answer_cur.split(','): #FIXME HERE
-                var_answer=var_answer+','+all_questions.get(key_q)[int(variant)-1]
+                list_answer.append(all_questions.get(key_q)[int(variant)-1])
 
-            data['answer_user'].append(var_answer)
-            data_ws2[key_q].append(var_answer)
+            data['answer_user'].append(', '.join(list_answer))
+            data_ws2[key_q].append(', '.join(list_answer))
         else: 
             data['answer_user'].append(answer_cur)
             data_ws2[key_q].append(answer_cur)
@@ -734,25 +734,33 @@ async def gen_pdf(answers, fname):
     pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
 
     i=1
+    j=1
     for qst in all_questions:
-        message = f"{i}. {qst}"
-        pdf.set_font('DejaVu-Bold', '', 16)
-        pdf.set_left_margin(10)
-        pdf.write(text=message)
-        pdf.ln(10)
-        pdf.set_font('DejaVu', '', 14)
-        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # select or onlyone
+        # write question
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]:
+            message = f"{j}. {qst}"
+            pdf.set_font('DejaVu-Bold', '', 16)
+            pdf.set_left_margin(10)
+            pdf.write(text=message)
+            pdf.ln(10)
+            pdf.set_font('DejaVu', '', 14)
+            j=j+1
+        # write answers    
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # select or onlyone
             for cur_var in answers[i]:
                 ans=all_questions.get(qst)[int(cur_var)-1]
-                pdf.set_left_margin(20)
+                pdf.set_left_margin(17)
                 pdf.write(text=str(ans))
                 pdf.ln(10)
         elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0]: #simple        
             ans = str(answers[i][0])
-            pdf.set_left_margin(20)
+            pdf.set_left_margin(17)
             pdf.write(text=ans)
             pdf.ln(10)
-        i=i+1
+        i=i+1  
     # Save the PDF to a file 
     pdf.output(fname)
     logging.info(f"PDF generated successfully as {fname}")
@@ -842,13 +850,14 @@ async def check_user_run_anketa(id_user, event_bot, menu):
         await new_run_anketa(id_user, event_bot, menu)       
         return 2
 
-async def simple_conversation(id_user, event_bot, question_id, cur_question):
+async def simple_conversation(id_user, event_bot, question_number, question_id, cur_question):
     '''
     simple_conversation - Dialog for simple question 
     only text filed
     
     :param id_user: dialog for telegram user - id_user
     :param event_bot: parent entity
+    :param question_number: number of question for count
     :param question_id: index in dict question
     :param cur_question: current question
     '''
@@ -858,7 +867,7 @@ async def simple_conversation(id_user, event_bot, question_id, cur_question):
         def my_press_event(id_user):
             return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
-            await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
+            await conv.send_message(f"Вопрос {question_number}:\n{cur_question}")
             #WAIT ANSWER SIMLPE HERE
             response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
             resp_text = response.text
@@ -876,11 +885,12 @@ async def simple_conversation(id_user, event_bot, question_id, cur_question):
         conv.cancel()
         return answers      
     
-async def onlyone_conversation(id_user, event_bot, question_id, cur_question):
+async def onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question):
     '''
     onlyone_conversation - Dialog for select only one option 
     :param id_user: dialog for telegram user - id_user
     :param event_bot: parent entity
+    :param question_number: number of question for count
     :param question_id: index in dict question
     :param cur_question: current question
     '''
@@ -897,7 +907,7 @@ async def onlyone_conversation(id_user, event_bot, question_id, cur_question):
             return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
             button.clear()
-            str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
+            str_qst=f"Вопрос {question_number}:\n{cur_question}"
             v=1
             for variant in all_questions.get(cur_question):
                 bdata=f'VARIANT_{question_id}_{v}'
@@ -923,11 +933,12 @@ async def onlyone_conversation(id_user, event_bot, question_id, cur_question):
     conv.cancel()        
     return answers      
 
-async def select_conversation(id_user, event_bot, question_id, cur_question):
+async def select_conversation(id_user, event_bot, question_number, question_id, cur_question):
     '''
     select_conversation - Dialog for multi select option 
     :param id_user: dialog for telegram user - id_user
     :param event_bot: parent entity
+    :param question_number: number of question for count
     :param question_id: index in dict question
     :param cur_question: current question
     '''
@@ -947,7 +958,7 @@ async def select_conversation(id_user, event_bot, question_id, cur_question):
             sender = await event_bot.get_sender()
             sender_id = sender.id
             button.clear()
-            str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
+            str_qst=f"Вопрос {question_number}:\n{cur_question}"
             v=1
             for variant in all_questions.get(cur_question):
                 bdata=f'VARIANT_{question_id}_{v}'
@@ -1005,20 +1016,29 @@ async def new_run_anketa(id_user, event_bot, menu):
     nickname = user_ent.username
     first_name = user_ent.first_name
     question_id=0
+    question_number=1
     answers=defaultdict(list)
     res=defaultdict(list)
     
+    if sts.timeout_warning:
+        await event_bot.respond(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
-    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
-                            f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
+    #if sts.timeout_warning:
+    #    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
+    #                        f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
+    #else:
+    #    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов.\n\n")
 
     for cur_question  in all_questions:
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[0]: # simple questinon
-            res = await simple_conversation(id_user, event_bot, question_id, cur_question)
+            res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select questinon
-            res = await select_conversation(id_user, event_bot, question_id, cur_question)
+            res = await select_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[2]: # onlyone questinon
-            res = await onlyone_conversation(id_user, event_bot, question_id, cur_question)
+            res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[3]: # header
             await bot.send_message(id_user, cur_question, parse_mode="html")
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[4]: # footer
@@ -1049,8 +1069,8 @@ async def new_run_anketa(id_user, event_bot, menu):
         logging.debug(f"Gen pdf filename: {fname}")
         await gen_pdf(answers,fname)
         message="📊 Ваш отчет"
-        await bot.send_file( id_user, fname, caption=message, parse_mode="html" ) 
-        await asyncio.sleep(1) # Delay for user after send report and show menu
+        await bot.send_file( id_user, fname, caption=message, parse_mode="html" )
+        #await asyncio.sleep(1) # Delay for user after send report and show menu
         if menu: 
                 await create_admin_menu(menu, event_bot)
 
@@ -1181,8 +1201,11 @@ async def show_qusetions(event_bot):
     i=1
     message="🧐 Текущие вопросы:"
     for qst in all_questions:
-        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0]: # simple
-            message = message + f"\n{i}.{qst}\n"
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]:
+            message = message + f"\n{i}. {qst}\n"
+            i=i+1
         else:
             message = message + f"\n{qst}\n"
         for variant in all_questions.get(qst):
@@ -1192,8 +1215,7 @@ async def show_qusetions(event_bot):
                 emoji='🔹'
             else:
                 emoji=''
-            message = message + f"  {emoji} {variant}\n" 
-        i=i+1
+            message = message + f"  {emoji} {variant}\n"
     
     await event_bot.respond(message)
     await create_admin_menu(0, event_bot)
@@ -1338,17 +1360,25 @@ sts.get_config()
 # Enable logging
 
 # Init default questions
-all_questions = {   "text_q1":[],
+all_questions = {   "header is header!":[],
+                    "text_q1":[],
+                    "text multi select here":[],
                     "text_q2":['variant1','variant2','variant3','variant4'],
                     "text_q3":['variant1'],
+                    "text only one here":[],
                     "text_q4":['variant1','variant2','variant3'],
-                    "text_q5":[]
+                    "text_q5":[],
+                    "Footer here - Good bye!":[]
                 }
-type_questions = {  "text_q1":"simple",
+type_questions = {  "header is header!":"header",
+                    "text_q1":"simple",
+                    "text multi select here":"text",
                     "text_q2":"select",
                     "text_q3":"onlyone",
+                    "text only one here":"text",
                     "text_q4":"onlyone",
-                    "text_q5":"simple"
+                    "text_q5":"simple",
+                    "Footer here - Good bye!":"footer"
                 }
 
 filename=os.path.join(os.path.dirname(sts.logfile),os.path.basename(sts.logfile))
