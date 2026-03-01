@@ -1015,8 +1015,7 @@ async def new_run_anketa(id_user, event_bot, menu):
     res=defaultdict(list)
     
 
-    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
-                            f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
+    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов.\n\n")
 
     for cur_question  in all_questions:
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[0]: # simple questinon
