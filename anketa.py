@@ -17,10 +17,10 @@ import json
 from datetime import datetime
 import requests
 from telethon import TelegramClient, events
-#from telethon.tl.types import  PeerChannel, PeerUser, UpdateNewMessage
+from telethon.tl.types import  PeerChannel, PeerUser, UpdateNewMessage
 from telethon.tl.custom import Button
-#from telethon import errors
-#from telethon.events import StopPropagation
+from telethon import errors
+from telethon.events import StopPropagation
 from telethon.sessions import StringSession
 import pandas as pd
 import filetype
@@ -44,7 +44,7 @@ class PDF(FPDF):
 
     def header(self):
         # Logo
-        self.image(sts.report_logo, 5, 2, 20)
+        self.image('images/'+sts.report_logo, 5, 2, 20)
         # Arial bold 15
         self.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
         self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
@@ -364,6 +364,10 @@ async def create_admin_menu(level, event):
         ],
         [
             Button.inline("⬆️ Загрузить новые вопросы", b"/am_questions")
+        ]
+        ,
+        [
+            Button.inline("📰 Загрузить изображения", b"/am_get_img")
         ]
         ,
         [
@@ -770,6 +774,43 @@ async def gen_pdf(answers, fname):
     pdf.output(fname)
     logging.info(f"PDF generated successfully as {fname}")
 
+async def get_image(event_bot):
+    '''
+    get and load image, logo, etc...
+    '''
+    logging.debug("Call get_image() function")
+    fmsg=''
+    support_img=['jpeg','jpg','gif','png','webp']
+    all_entries = os.listdir('images/')
+    for file in all_entries:
+        fmsg=fmsg+file+'\n'
+
+    await event_bot.respond(\
+        f"Сейчас загружены следующие файлы:\n{fmsg}\n" \
+        "📎 Загрузите файл с изображнием.\n\n" \
+        "Поддержиаются следующие типы файлов:\n" \
+        "jpeg, jpg, gif, png, webp размером не более 5МБ")
+
+    @bot.on(events.NewMessage())
+    async def bot_handler_f_bot(event):
+        #logging.debug(f"Get NewMessage event_bot: {event}")      
+        if event.message.document:
+            download_path = await event.message.download_media(file="images/") 
+            logging.info(f'File with questions saved to: {download_path}')                                   
+            kind = filetype.guess(download_path)
+            if kind is None:
+                logging.debug(f'Cannot guess file type filename: {download_path}!')
+                message="⚠️Тип файла не определен, попробуйте другой файл!"
+                os.remove(download_path)                
+            elif kind.extension not in support_img:
+                os.remove(download_path)
+                message="⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
+            else:
+                message=f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"
+            await event.respond(message)
+            bot.remove_event_handler(bot_handler_f_bot)
+            await create_admin_menu(0, event_bot)
+
 async def get_qusetion_data(event_bot):
     '''
     get and load questions to DB Questions
@@ -778,12 +819,13 @@ async def get_qusetion_data(event_bot):
     
     await event_bot.respond(\
     "📎 Загрузите файл с вопросами.\n\n" \
-    "Поддержиаются следующие типы файлов:\n" \
+    #"Поддержиаются следующие типы файлов:\n" \
     #"🔹Текстовый файл (txt) по одному вопросу на строке\n" \
     #"🔹MS Word файл (docx) по одному вопросу на строке\n" \
-    "🔹MS Excel файл (xls,xlsx) по одному вопросу в ячейке в первой колонке\n" \
-    "🔹варианты ответов в следующих за вопросом колонках\n" \
-    "🔹если нет варианта ответа - ответ вводит опрашиваемый\n" \
+    "MS Excel файл (xls,xlsx) заполненнный согласно шаблона\n"
+    #" по одному вопросу в ячейке в первой колонке\n" \
+    #"🔹варианты ответов в следующих за вопросом колонках\n" \
+    #"🔹если нет варианта ответа - ответ вводит опрашиваемый\n" \
     #"⚠️ Старый формат MS word (doc) не поддерживается!\n" \
     "\n♨️ Текущие вопросы и ответы будут удалены!")
 
@@ -1013,6 +1055,26 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
     conv.cancel()            
     return answers    
 
+async def exist_file(path_to_file):
+    '''
+    Test for exist file or url
+    '''
+    if os.path.isfile('images/'+path_to_file):
+        return 'images/'+path_to_file
+    
+    try:
+        # Use HEAD request to check for existence without downloading content
+        response = requests.head(path_to_file, timeout=5)
+        # 200-299 status codes indicate success
+        if 200 <= response.status_code <= 303:
+            return path_to_file
+    except requests.ConnectionError:
+        # Handle connection errors (e.g., domain not found, no internet)
+        return False
+    except requests.Timeout:
+        # Handle timeouts
+        return False
+    
 async def new_run_anketa(id_user, event_bot, menu):
     '''
     run main process for anketting
@@ -1039,11 +1101,19 @@ async def new_run_anketa(id_user, event_bot, menu):
             res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[3]: # header
-            await bot.send_message(id_user, cur_question, parse_mode="html")
+            path_to_file = await exist_file(all_questions[cur_question][0])
+            if path_to_file:
+                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")                           
+            else:
+                await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
             continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[4]: # footer
-            await bot.send_message(id_user, cur_question, parse_mode="html")
+            path_to_file = await exist_file(all_questions[cur_question][0])
+            if path_to_file:
+                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")                            
+            else:
+                await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
             continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[5]: # text
@@ -1065,9 +1135,9 @@ async def new_run_anketa(id_user, event_bot, menu):
         # Write Answers to DB
         async with dbm.DatabaseBot(sts.db_name) as db:     
                 await db.db_add_answer(id_user, first_name, nickname, answers)
-        message=f"🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n"
+        #message=f"🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n"
 
-        await bot.send_message(id_user, message)
+        #await bot.send_message(id_user, message)
 
         dt = datetime.now().strftime('%d%m%Y_%H%M%S')
         fname = f"reports/rpt_{id_user}_{dt}.pdf"
@@ -1288,16 +1358,15 @@ async def main_frontend():
             await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_anketa':
             await check_user_run_anketa(id_user, event_bot_choice, 1)
-            #await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_answers':
             await send_report(event_bot_choice)
             await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_questions':
             await get_qusetion_data(event_bot_choice)
-            #await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_show_questions':
             await show_qusetions(event_bot_choice)
-            #await create_admin_menu(menu_level, event_bot_choice)
+        elif button_data == '/am_get_img':
+             await get_image(event_bot_choice)   
         elif button_data == '/am_add_admins':
             await add_admins(event_bot_choice)
         elif button_data == '/am_del_admins':
@@ -1367,7 +1436,7 @@ sts.get_config()
 # Enable logging
 
 # Init default questions
-all_questions = {   "header is header!":[],
+all_questions = {   "header is header!":['logo.jpg'],
                     "text_q1":[],
                     "text multi select here":[],
                     "text_q2":['variant1','variant2','variant3','variant4'],
@@ -1375,7 +1444,7 @@ all_questions = {   "header is header!":[],
                     "text only one here":[],
                     "text_q4":['variant1','variant2','variant3'],
                     "text_q5":[],
-                    "Footer here - Good bye!":[]
+                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":['congratulation.jpg']
                 }
 type_questions = {  "header is header!":"header",
                     "text_q1":"simple",
@@ -1385,7 +1454,7 @@ type_questions = {  "header is header!":"header",
                     "text only one here":"text",
                     "text_q4":"onlyone",
                     "text_q5":"simple",
-                    "Footer here - Good bye!":"footer"
+                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":"footer"
                 }
 
 filename=os.path.join(os.path.dirname(sts.logfile),os.path.basename(sts.logfile))
