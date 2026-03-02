@@ -1,11 +1,3 @@
-FROM alpine AS builder
-
-# install python dependencies
-RUN apk update
-RUN apk add build-base
-RUN apk add pkgconf
-
-
 #
 # Build final image
 #
