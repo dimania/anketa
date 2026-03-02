@@ -1082,11 +1082,16 @@ async def new_run_anketa(id_user, event_bot, menu):
     user_ent = await bot.get_entity(id_user)
     nickname = user_ent.username
     first_name = user_ent.first_name
+    if not nickname:
+        nickname = first_name
+
     question_id=0
     question_number=1
     answers=defaultdict(list)
     res=defaultdict(list)
     
+    logging.debug(f"RUN_ANKETA: user_ent={user_ent}\nnickname={nickname}\nfirstname={first_name}\n")
+
     if sts.timeout_warning:
         await event_bot.respond(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
