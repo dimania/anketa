@@ -258,7 +258,7 @@ def conversion_example():
 
 def test_ret_arrays():
     ad={}
-    ad['u_id1'] = 'u_nick','u_fname'
+    ad['u_id1'] = ['u_nick','u_fname']
     ad['u_id2'] = 'u_nick','u_fname'
     ad1=[]
     ad1=['u_nick1','u_fname1']
@@ -276,15 +276,40 @@ def main():
     ad=[]
     ad1=[]
     ss3[1]=['1','2','4']
+
+    all_questions = {   "header is header!":['logo.jpg'],
+                    "text_q1":[],
+                    "text multi select here":[],
+                    "text_q2":['variant1','variant2','variant3','variant4'],
+                    "text_q3":['variant1'],
+                    "text only one here":[],
+                    "text_q4":['variant1','variant2','variant3'],
+                    "text_q5":[],
+                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":['congratulation.jpg']
+                }
+    type_questions = {  "header is header!":"header",
+                    "text_q1":"simple",
+                    "text multi select here":"text",
+                    "text_q2":"select",
+                    "text_q3":"onlyone",
+                    "text only one here":"text",
+                    "text_q4":"onlyone",
+                    "text_q5":"simple",
+                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":"footer"
+                }
+
     i = 3
     data=defaultdict(list)
     data[0]=' '
-
-    if data[0]:
-        print('ok')
-    else:
-        print('no ok')
+    for cur_question,variants in all_questions.items():
+        #variants=all_questions[cur_question]
+        print(f"cur={cur_question} - > var={variants}\n")
+        if variants:
+            print(f"var[0]={variants[0]}\n")
+    
     exit(0)
+
+
 
     ad,ad1 = test_ret_arrays()
     #print(f"ad={ad}\nad1={ad1}\n")

@@ -1,6 +1,6 @@
 '''
  Telegram Bot for Anketing 
- version 0.1
+ version 5
  Module anketa.py 
   
 '''
@@ -244,21 +244,6 @@ async def check_nickname(username):
         logging.debug(f"Error check Nickname [{username}] {e}")
         return False
 
-async def is_utf8_text_file(fname): #NOTUSE now
-    """Checks if a file can be entirely decoded as UTF-8 text."""
-    try:
-        with open(fname, 'r', encoding='utf-8') as file:
-            file.read()
-        return True
-    except UnicodeDecodeError:
-        # This exception is raised if the file contains byte sequences 
-        # that are invalid for UTF-8 encoding.
-        return False
-    except Exception as e:
-        # Handle other potential exceptions (e.g., file not found, permission errors)
-        logging.warning(f"An error occurred: {e}")
-        return False
-
 async def get_excel_data(fname, sheet_name=0):
     """
     Reads data from an Excel file into a pandas DataFrame.
@@ -272,28 +257,6 @@ async def get_excel_data(fname, sheet_name=0):
     except Exception as e:
         logging.warning(f"Error reading Excel file: {e}")
         return False
-
-async def get_word_text(fname): #NOTUSE now
-    """
-    Extracts all text from a .docx file.
-    """
-    document = docx.Document(fname)
-    full_text = []
-    for paragraph in document.paragraphs:
-        full_text.append(paragraph.text)
-
-    # Join paragraphs with a newline character
-    return '\n'.join(full_text)
-    
-async def get_txt_text(fname): #NOTUSE now
-    '''
-    Get data fron text file 
-    '''
-    with open(fname, 'r', encoding="utf-8") as file:
-                #text = text + [for line in file.readlines()]
-                text=file.read()
-    
-    return text
 
 async def get_new_questions(fname):
     '''
@@ -410,7 +373,7 @@ async def show_stats(event):
   
     return True 
 
-async def test_send_report(event):
+async def test_send_report(event):# USE for test create report excel file
     '''
     send Answers DB to Admin (load results)
     '''
@@ -856,13 +819,6 @@ async def get_qusetion_data(event_bot):
             bot.remove_event_handler(bot_handler_f_bot)
             await create_admin_menu(0, event_bot)
     
-async def home():
-    '''
-    stub function
-    '''
-    logging.debug("Call home stub function")
-    return 0
-
 async def check_user_run_anketa(id_user, event_bot, menu):
     '''
     Test user already answer or not
@@ -891,10 +847,10 @@ async def check_user_run_anketa(id_user, event_bot, menu):
                 async with dbm.DatabaseBot(sts.db_name) as db:
                     await db.db_del_user_answers(id_user)
                 bot.remove_event_handler(callback_yn)
-                await new_run_anketa(id_user, event_bot, menu)                                      
+                await run_anketa(id_user, event_bot, menu)                                      
             return 0
     else:
-        await new_run_anketa(id_user, event_bot, menu)       
+        await run_anketa(id_user, event_bot, menu)       
         return 2
 
 async def simple_conversation(id_user, event_bot, question_number, question_id, cur_question):
@@ -1066,16 +1022,13 @@ async def exist_file(path_to_file):
         # Use HEAD request to check for existence without downloading content
         response = requests.head(path_to_file, timeout=5)
         # 200-299 status codes indicate success
-        if 200 <= response.status_code <= 303:
+        if 200 <= response.status_code <= 300:
             return path_to_file
-    except requests.ConnectionError:
-        # Handle connection errors (e.g., domain not found, no internet)
-        return False
-    except requests.Timeout:
-        # Handle timeouts
+    except:
+        # Error get url
         return False
     
-async def new_run_anketa(id_user, event_bot, menu):
+async def run_anketa(id_user, event_bot, menu):
     '''
     run main process for anketting
     '''
@@ -1087,6 +1040,7 @@ async def new_run_anketa(id_user, event_bot, menu):
 
     question_id=0
     question_number=1
+    path_to_file=''
     answers=defaultdict(list)
     res=defaultdict(list)
     
@@ -1095,7 +1049,7 @@ async def new_run_anketa(id_user, event_bot, menu):
     if sts.timeout_warning:
         await event_bot.respond(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
-    for cur_question  in all_questions:
+    for cur_question,variants  in all_questions.items():
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[0]: # simple questinon
             res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
             question_number = question_number + 1
@@ -1106,7 +1060,8 @@ async def new_run_anketa(id_user, event_bot, menu):
             res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[3]: # header
-            path_to_file = await exist_file(all_questions[cur_question][0])
+            if variants:
+                path_to_file = await exist_file(variants[0])
             if path_to_file:
                 await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")                           
             else:
@@ -1114,7 +1069,8 @@ async def new_run_anketa(id_user, event_bot, menu):
             question_id=question_id+1
             continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[4]: # footer
-            path_to_file = await exist_file(all_questions[cur_question][0])
+            if variants:
+                path_to_file = await exist_file(variants[0])
             if path_to_file:
                 await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")                            
             else:
@@ -1157,124 +1113,6 @@ async def new_run_anketa(id_user, event_bot, menu):
         return True
     
     return False
-
-async def run_anketa(id_user, event_bot, menu): #NOT USE
-    '''
-    run main process for anketting
-    '''
-    user_ent = await bot.get_entity(id_user)
-    sender = await event_bot.get_sender()
-    sender_id = sender.id
-    nickname = user_ent.username
-    first_name = user_ent.first_name
-    question_id=0
-    button=[]
-    bdata=''
-    v=1
-    answ_v=[]
-    answers=defaultdict(list)
-    end_of_answer=True
-
-    await event_bot.respond(f"Ответьте пожалуйста на несколько вопросов\n"\
-                            f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
-
-    async with bot.conversation(id_user) as conv:
-        def my_press_event(id_user):
-            return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
-        try:
-            for cur_question  in all_questions:
-                end_of_answer=True
-                if not all_questions.get(cur_question):
-                    await conv.send_message(f"Вопрос {question_id+1}:\n{cur_question}")
-                    #WAIT ANSWER SIMLPE HERE
-                    response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
-                    resp_text = response.text
-                    logging.info(f"Get respond text: {question_id} : {resp_text}")
-                    answers[question_id+1].append(resp_text)                    
-                else:
-                    button.clear()
-                    str_qst=f"Вопрос {question_id+1}:\n{cur_question}"
-                    v=1
-                    for variant in all_questions.get(cur_question):
-                        if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select
-                            bdata=f'VARIANT_{sts.TYPES_OF_QUESTONS[1]}_{question_id}_{v}'
-                            button.append([ Button.inline(f'🔘 {variant}', bdata)])
-                        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[2]: # onlyone
-                             bdata=f'VARIANT_{sts.TYPES_OF_QUESTONS[2]}_{question_id}_{v}'
-                             button.append([ Button.inline(f'🔹 {variant}', bdata)])   
-                        v=v+1
-                    if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select
-                        bdata=f'ANSWER_{question_id}'
-                        button.append([ Button.inline('Ответить', bdata)]) 
-
-                    await conv.send_message(str_qst, buttons=button)
-
-                    while end_of_answer:
-                        # WAIT ANSWERS OTHER TYPE OF QUESTION HERE
-                        handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
-                        event_res = await handle 
-                        button_pressed = event_res.data.decode('utf-8')
-                        #msg_id=msg_id
-                        logging.info(f"Message id after event: {event_res.query.msg_id}")
-                        if button_pressed.find('ANSWER_') == 0:
-                            answers[question_id+1].sort()
-                            end_of_answer=False
-                            break
-                            
-                        answ_v = button_pressed.replace('VARIANT_', '').split('_')
-                        logging.info(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
-    
-                        if answ_v[0] == sts.TYPES_OF_QUESTONS[1]: # select
-                            if answ_v[2] in answers[question_id+1]:
-                                answers[question_id+1].remove(answ_v[2])
-                            else:   
-                                answers[question_id+1].append(answ_v[2])
-
-                            button.clear()
-                            i=1
-                            for variant in all_questions.get(cur_question):
-                                bdata=f'VARIANT_{sts.TYPES_OF_QUESTONS[1]}_{question_id}_{i}'
-                                if str(i) in answers[question_id+1]:
-                                    emoji='🟢'
-                                else:
-                                    emoji='🔘'
-                                button.append([ Button.inline(f'{emoji} {variant}', bdata)])
-                                i=i+1
-                            
-                            bdata=f'ANSWER_{question_id}'
-                            button.append([ Button.inline('Ответить', bdata)])
-                            await bot.edit_message(event_res.query.user_id, event_res.query.msg_id,str_qst, buttons=button)
-                            end_of_answer=True
-                        elif answ_v[0] == sts.TYPES_OF_QUESTONS[2]: # onlyone
-                            logging.info(f"Get respond ONLYONE: {question_id} / {answers} / {answ_v}")
-                            answers[question_id+1].append(answ_v[2])
-                            end_of_answer=False
-                            break
-                        else:
-                            answers[question_id+1].append(answ_v[2])
-                            end_of_answer=False
-                            break
-
-                question_id = question_id + 1
-            logging.debug(f"Dict All answers: {answers}")
-            # Write Answers to DB
-            async with dbm.DatabaseBot(sts.db_name) as db:     
-                    await db.db_add_answer(id_user, first_name, nickname, answers)
-            await conv.send_message(f"🔆 Вы ответили на все вопросы.\n"\
-                                    "Результаты сохранены.\n"
-                                    "Для повторного прохождения опроса\n"\
-                                    "нажмите кнопку Старт\n")
-        except TimeoutError as error:
-            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question} ")
-            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
-                                    "Результаты не будут сохранены.\n"\
-                                    "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого нажмите кнопку Старт\n")
-        conv.cancel()
-        if menu: 
-            await create_admin_menu(menu, event_bot)
-
-    return 0 
 
 async def show_qusetions(event_bot):
     '''
@@ -1441,7 +1279,8 @@ sts.get_config()
 # Enable logging
 
 # Init default questions
-all_questions = {   "header is header!":['logo.jpg'],
+#'logo.jpg'
+all_questions = {   "header is header!":['lowgo.jpg'],
                     "text_q1":[],
                     "text multi select here":[],
                     "text_q2":['variant1','variant2','variant3','variant4'],
