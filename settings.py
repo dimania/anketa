@@ -29,7 +29,21 @@ TIMEOUT_FOR_ANSWER = 120
 # simple - text answer
 # select - multi selection dialog
 # onlyone - select oly one answer from list
-TYPES_OF_QUESTONS = ["simple", "select", "onlyone","header","footer","text"]
+# header - Text and image before begin run anketa
+# footer - Text and image after and anketa
+# text - any text message in process (must not be repet same text)
+# report - setting text Title and logo for user report in pdf file
+
+#Define vars for index
+SIMPLE = 0 
+SELECT = 1
+ONLYONE = 2
+HEADER = 3
+FOOTER = 4
+TEXT = 5
+REPORT = 6
+
+TYPES_OF_QUESTONS = ["simple", "select", "onlyone","header","footer","text","report"]
 
 api_id = None
 api_hash = None
@@ -50,6 +64,7 @@ all_questions = None
 Admins = {}
 Builtin_admin = None
 report_logo = None
+report_title = None
 timeout_warning = True
 
 
@@ -76,6 +91,7 @@ def get_config(config=cfg):
     global Admins
     global Builtin_admin
     global report_logo
+    global report_title
     global timeout_warning
     global TIMEOUT_FOR_ANSWER
 
@@ -91,6 +107,7 @@ def get_config(config=cfg):
         log_level = config.log_level
         Builtin_admin = config.Builtin_admin
         report_logo = config.report_logo
+        report_title = config.report_title
         timeout_warning = config.timeout_warning
 
         if 'timeout_for_answer' in vars(config):

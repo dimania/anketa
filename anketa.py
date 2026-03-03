@@ -53,7 +53,7 @@ class PDF(FPDF):
         # Move to the right
         self.cell(80)
         # Title
-        self.cell(30, 10, text='Анкета', border=0, align='C')
+        self.cell(30, 10, text=self.title, border=0, align='C')
         
         # Write date and time creation report
         self.set_font('DejaVu', '', 8)
@@ -289,8 +289,7 @@ async def get_new_questions(fname):
         logging.debug(f'if {type_current_qusetion} not in {sts.TYPES_OF_QUESTONS}')
         if type_current_qusetion not in sts.TYPES_OF_QUESTONS:
             #raise ValueError("Type of question invald!")
-            return False,False
-        
+            return False,False             
         logging.debug(f'Item content is:{item}')
         nan_list=pd.isna(item)
         logging.debug(f'Item content is:{nan_list}')
@@ -301,7 +300,13 @@ async def get_new_questions(fname):
             if not y and i:
                 val.append(x) 
             i=True
-        
+        # Set user report settings
+        if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+            sts.report_title = item[0]
+            sts.report_logo = val[0]
+            logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
+            #continue
+
         qlist[item[0]]=val
         tlist[item[0]]=type_current_qusetion
         val=[]
@@ -698,7 +703,7 @@ async def gen_pdf(answers, fname):
     '''
     # Create an instance of the FPDF class (portrait, millimeters, A4 format by default)
     pdf = PDF()
-
+    pdf.set_title(sts.report_title)
     pdf.alias_nb_pages()
     # Add a page
     pdf.add_page()
@@ -881,7 +886,7 @@ async def simple_conversation(id_user, event_bot, question_number, question_id, 
             await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого нажмите кнопку Старт\n")
+                                    "Для этого  в ≡Меню выберете Старт\n")
             conv.cancel()        
             return False
         
@@ -929,7 +934,7 @@ async def onlyone_conversation(id_user, event_bot, question_number, question_id,
             await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого нажмите кнопку Старт\n")
+                                    "Для этого  в ≡Меню выберете Старт\n")
             conv.cancel()
             return False
         
@@ -1004,7 +1009,7 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
             await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого нажмите кнопку Старт\n")
+                                    "Для этого  в ≡Меню выберете Старт\n")
             conv.cancel()
             return False
 
@@ -1050,16 +1055,16 @@ async def run_anketa(id_user, event_bot, menu):
         await event_bot.respond(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
 
     for cur_question,variants  in all_questions.items():
-        if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[0]: # simple questinon
+        if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SIMPLE]: # simple questinon
             res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
             question_number = question_number + 1
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[1]: # select questinon
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SELECT]: # select questinon
             res = await select_conversation(id_user, event_bot, question_number, question_id, cur_question)
             question_number = question_number + 1
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[2]: # onlyone questinon
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.ONLYONE]: # onlyone questinon
             res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
             question_number = question_number + 1
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[3]: # header
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
             if variants:
                 path_to_file = await exist_file(variants[0])
             if path_to_file:
@@ -1068,7 +1073,7 @@ async def run_anketa(id_user, event_bot, menu):
                 await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
             continue
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[4]: # footer
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
             if variants:
                 path_to_file = await exist_file(variants[0])
             if path_to_file:
@@ -1077,8 +1082,11 @@ async def run_anketa(id_user, event_bot, menu):
                 await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
             continue
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[5]: # text
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.TEXT]: # text
             await bot.send_message(id_user, cur_question, parse_mode="html")
+            question_id=question_id+1
+            continue
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.REPORT]: # text
             question_id=question_id+1
             continue
 
@@ -1121,13 +1129,18 @@ async def show_qusetions(event_bot):
     i=1
     message="🧐 Текущие вопросы:"
     for qst in all_questions:
-        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0] or \
-           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or \
-           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]:
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SIMPLE] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.ONLYONE] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SELECT]:
             message = message + f"\n{i}. {qst}\n"
             i=i+1
-        else:
-            message = message + f"\n{qst}\n"
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
+             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
+             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.TEXT]:            
+              message = message + f"\n{qst}\n"
+              continue
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+             continue
         for variant in all_questions.get(qst):
             if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1]: # select 
                 emoji='🔘'
@@ -1268,6 +1281,17 @@ async def main():
         all_questions.update(new_questions)
         type_questions.clear()
         type_questions.update(new_questions_type)
+        #Set report settings
+        real_key=None
+        for key, value in type_questions.items():
+            if value == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+                real_key = key
+                break
+
+        if real_key:
+            sts.report_title = key
+            sts.report_logo = all_questions[key][0]
+            logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
         
 
     # Run basic events loop
@@ -1288,7 +1312,8 @@ all_questions = {   "header is header!":['lowgo.jpg'],
                     "text only one here":[],
                     "text_q4":['variant1','variant2','variant3'],
                     "text_q5":[],
-                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":['congratulation.jpg']
+                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":['congratulation.jpg'],
+                    "Ёжная Аткета":['logo.jpg']
                 }
 type_questions = {  "header is header!":"header",
                     "text_q1":"simple",
@@ -1298,7 +1323,8 @@ type_questions = {  "header is header!":"header",
                     "text only one here":"text",
                     "text_q4":"onlyone",
                     "text_q5":"simple",
-                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":"footer"
+                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":"footer",
+                    "Ёжная Аткета":"report"
                 }
 
 filename=os.path.join(os.path.dirname(sts.logfile),os.path.basename(sts.logfile))
