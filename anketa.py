@@ -300,12 +300,19 @@ async def get_new_questions(fname):
             if not y and i:
                 val.append(x) 
             i=True
-        # Set user report settings
-        if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
-            sts.report_title = item[0]
-            sts.report_logo = val[0]
-            logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
-            #continue
+        #Test on exist image files
+        if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
+           type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
+           type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+            if exist_file(val[0]):
+                # Set user report settings else use defaut
+                if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+                    sts.report_title = item[0]
+                    sts.report_logo = val[0]
+                    logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
+                    #continue
+            else:
+             logging.warning(f"Warning file or url {val[0]} not exist")   
 
         qlist[item[0]]=val
         tlist[item[0]]=type_current_qusetion
