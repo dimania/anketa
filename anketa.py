@@ -284,6 +284,7 @@ async def get_new_questions(fname):
     tlist={}
     val=[]
     warnings=''
+    id4t=1
     sts.report_logo = sts.def_report_logo
     sts.report_title = sts.def_report_title
     for item in text_content['data']:
@@ -319,7 +320,13 @@ async def get_new_questions(fname):
                 logging.warning(f"Warning file or url {val[0]} not exist")
                 warnings=warnings+f"⚠️Внимание! файл или URL  {val[0]} не существует!\nБудет использован файл по умолчанию.\n"   
                 val[0]=''
+        if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.TEXT]: # Add some id to text for repeat in dict key            
+            item[0]=f"ID4T_{id4t}_"+item[0]
+            #val[0]=''
+            id4t = id4t + 1
 
+            
+            
         qlist[item[0]]=val
         tlist[item[0]]=type_current_qusetion
         val=[]
@@ -1096,6 +1103,7 @@ async def run_anketa(id_user, event_bot, menu):
             question_id=question_id+1
             continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.TEXT]: # text
+            cur_question = re.sub(r"ID4T_\d+_", "", cur_question)
             await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
             continue
@@ -1159,7 +1167,9 @@ async def show_qusetions(event_bot):
            type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SELECT]:
             message = message + f"\n{i}. {qst}\n"
             i=i+1
-        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.TEXT]:            
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.TEXT]:
+              #qst.replace('ID4T_[d]_', '')
+              qst = re.sub(r"ID4T_\d+_", "", qst)
               message = message + f"\n{qst}\n"
               continue
         elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
@@ -1336,10 +1346,10 @@ sts.get_config()
 #'logo.jpg'
 all_questions = {   "header is header!":['logo.jpg'],
                     "text_q1":[],
-                    "text multi select here":[],
+                    "ID4T_1_text multi select here":[],
                     "text_q2":['variant1','variant2','variant3','variant4'],
                     "text_q3":['variant1'],
-                    "text only one here":[],
+                    "ID4T_2_text only one here":[],
                     "text_q4":['variant1','variant2','variant3'],
                     "text_q5":[],
                     "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":['congratulation.jpg'],
@@ -1347,10 +1357,10 @@ all_questions = {   "header is header!":['logo.jpg'],
                 }
 type_questions = {  "header is header!":"header",
                     "text_q1":"simple",
-                    "text multi select here":"text",
+                    "ID4T_1_text multi select here":"text",
                     "text_q2":"select",
                     "text_q3":"onlyone",
-                    "text only one here":"text",
+                    "ID4T_2_text only one here":"text",
                     "text_q4":"onlyone",
                     "text_q5":"simple",
                     "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":"footer",

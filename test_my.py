@@ -303,16 +303,20 @@ def main():
     data=defaultdict(list)
     data[0]=' '
     temp_dict={}
+
     for qst,type in type_questions.items():
         #variants=all_questions[cur_question]
-        print(f"cur={qst} - > var={type}\n")
+        #print(f"cur={qst} - > var={type}\n")
         if type == 'header':
-            print(f"FROM ALL QST={all_questions[qst]}\n")
+            #print(f"FROM ALL QST={all_questions[qst]}\n")
             val=all_questions.pop(qst)
             temp_dict[qst]=val
     #all_questions[add_qst]=val
     new_dict = {**temp_dict, **all_questions}
-    print(f"new all_qst {all_questions}\n{new_dict}")
+    #print(f"new all_qst {all_questions}\n{new_dict}")
+    qst = "ID4T_10101010_SOME text now here"
+    qst = re.sub(r"ID4T_\d+_", "", qst)
+    print(qst)
 
     exit(0)
 
