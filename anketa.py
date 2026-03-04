@@ -283,6 +283,7 @@ async def get_new_questions(fname):
     qlist={}
     tlist={}
     val=[]
+    warnings=''
     for item in text_content['data']:
         #item - one question and variants answers if exist
         type_current_qusetion=item.pop(0)
@@ -304,7 +305,7 @@ async def get_new_questions(fname):
         if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
            type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
            type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
-            if exist_file(val[0]):
+            if await exist_file(val[0]):
                 # Set user report settings else use defaut
                 if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
                     sts.report_title = item[0]
@@ -312,14 +313,16 @@ async def get_new_questions(fname):
                     logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
                     #continue
             else:
-             logging.warning(f"Warning file or url {val[0]} not exist")   
+                logging.warning(f"Warning file or url {val[0]} not exist")
+                warnings=warnings+f"⚠️Внимание! файл или URL  {val[0]} не существует!\nБудет использован файл по умолчанию.\n"   
+                val[0]=''
 
         qlist[item[0]]=val
         tlist[item[0]]=type_current_qusetion
         val=[]
         logging.debug(f'tlist=:{tlist}\nqlist={qlist}')
     
-    return tlist,qlist
+    return tlist,qlist,warnings
 
 async def create_admin_menu(level, event):
     ''' Create Admin menu '''
@@ -812,7 +815,7 @@ async def get_qusetion_data(event_bot):
             logging.info(f'File with questions saved to: {download_path}')                                   
             #with open(download_path, 'r', encoding="utf-8") as file:
             #    new_questions = [line.strip() for line in file.readlines()]
-            new_type_questions, new_questions = await get_new_questions(download_path)
+            new_type_questions, new_questions, warnings = await get_new_questions(download_path)
             if not new_questions:
                 await event_bot.respond("⚠️Неверные данные, проверьте файл с вопросами!")
                 bot.remove_event_handler(bot_handler_f_bot)
@@ -828,6 +831,8 @@ async def get_qusetion_data(event_bot):
                 await db.db_rewrite_new_questions(all_questions,type_questions)
 
             await event.respond("Данные загружены в бот.")
+            if warnings:
+                await event.respond(warnings)
             bot.remove_event_handler(bot_handler_f_bot)
             await create_admin_menu(0, event_bot)
     
@@ -1075,16 +1080,18 @@ async def run_anketa(id_user, event_bot, menu):
             if variants:
                 path_to_file = await exist_file(variants[0])
             if path_to_file:
-                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")                           
+                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")
+                path_to_file=''                           
             else:
                 await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
             continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
             if variants:
-                path_to_file = await exist_file(variants[0])
+                path_to_file = await exist_file(variants[0])                
             if path_to_file:
-                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")                            
+                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")
+                path_to_file=''
             else:
                 await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
@@ -1093,7 +1100,7 @@ async def run_anketa(id_user, event_bot, menu):
             await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
             continue
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.REPORT]: # text
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.REPORT]: # report
             question_id=question_id+1
             continue
 
@@ -1297,8 +1304,9 @@ async def main():
 
         if real_key:
             sts.report_title = key
-            sts.report_logo = all_questions[key][0]
-            logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
+            if all_questions[key]: 
+                sts.report_logo = all_questions[key][0]
+        logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
         
 
     # Run basic events loop
