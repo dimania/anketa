@@ -92,6 +92,8 @@ def get_config(config=cfg):
     global Builtin_admin
     global report_logo
     global report_title
+    global def_report_logo
+    global def_report_title
     global timeout_warning
     global TIMEOUT_FOR_ANSWER
 
@@ -108,6 +110,8 @@ def get_config(config=cfg):
         Builtin_admin = config.Builtin_admin
         report_logo = config.report_logo
         report_title = config.report_title
+        def_report_logo = config.report_logo
+        def_report_title = config.report_title
         timeout_warning = config.timeout_warning
 
         if 'timeout_for_answer' in vars(config):

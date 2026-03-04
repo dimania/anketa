@@ -277,7 +277,7 @@ def main():
     ad1=[]
     ss3[1]=['1','2','4']
 
-    all_questions = {   "header is header!":['logo.jpg'],
+    all_questions = {   
                     "text_q1":[],
                     "text multi select here":[],
                     "text_q2":['variant1','variant2','variant3','variant4'],
@@ -285,7 +285,8 @@ def main():
                     "text only one here":[],
                     "text_q4":['variant1','variant2','variant3'],
                     "text_q5":[],
-                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":['congratulation.jpg']
+                    "🔆 Вы ответили на все вопросы.\nРезультаты сохранены.\nДля повторного прохождения опроса\nнажмите кнопку Старт\n":['congratulation.jpg'],
+                    "header is header!":['logo.jpg']
                 }
     type_questions = {  "header is header!":"header",
                     "text_q1":"simple",
@@ -301,12 +302,18 @@ def main():
     i = 3
     data=defaultdict(list)
     data[0]=' '
-    for cur_question,variants in all_questions.items():
+    temp_dict={}
+    for qst,type in type_questions.items():
         #variants=all_questions[cur_question]
-        print(f"cur={cur_question} - > var={variants}\n")
-        if variants:
-            print(f"var[0]={variants[0]}\n")
-    
+        print(f"cur={qst} - > var={type}\n")
+        if type == 'header':
+            print(f"FROM ALL QST={all_questions[qst]}\n")
+            val=all_questions.pop(qst)
+            temp_dict[qst]=val
+    #all_questions[add_qst]=val
+    new_dict = {**temp_dict, **all_questions}
+    print(f"new all_qst {all_questions}\n{new_dict}")
+
     exit(0)
 
 

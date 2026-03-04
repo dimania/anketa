@@ -272,25 +272,27 @@ async def get_new_questions(fname):
 
     if kind is None:
         logging.debug(f'Cannot guess file type filename: {fname}!')
-        return False,False
+        return False,False,False
     elif kind.extension == 'xlsx' or kind.extension == 'xls':
         text_content = await get_excel_data(fname)
         logging.debug(f'Xlsx or xls content is:{text_content}')
     
     if not text_content:
-        return False,False
+        return False,False,False
     
     qlist={}
     tlist={}
     val=[]
     warnings=''
+    sts.report_logo = sts.def_report_logo
+    sts.report_title = sts.def_report_title
     for item in text_content['data']:
         #item - one question and variants answers if exist
         type_current_qusetion=item.pop(0)
         logging.debug(f'if {type_current_qusetion} not in {sts.TYPES_OF_QUESTONS}')
         if type_current_qusetion not in sts.TYPES_OF_QUESTONS:
             #raise ValueError("Type of question invald!")
-            return False,False             
+            return False,False,False             
         logging.debug(f'Item content is:{item}')
         nan_list=pd.isna(item)
         logging.debug(f'Item content is:{nan_list}')
@@ -320,7 +322,7 @@ async def get_new_questions(fname):
         qlist[item[0]]=val
         tlist[item[0]]=type_current_qusetion
         val=[]
-        logging.debug(f'tlist=:{tlist}\nqlist={qlist}')
+        logging.debug(f'\ntlist={tlist}\nqlist={qlist}\nwarnings={warnings}')
     
     return tlist,qlist,warnings
 
@@ -1065,7 +1067,18 @@ async def run_anketa(id_user, event_bot, menu):
 
     if sts.timeout_warning:
         await event_bot.respond(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
-
+    #Show Header
+    for cur_question,type in type_questions.items():
+        if type == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
+            if all_questions[cur_question]:
+                path_to_file = await exist_file(all_questions[cur_question][0])
+            if path_to_file:
+                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")
+                path_to_file=''                           
+            else:
+                await bot.send_message(id_user, cur_question, parse_mode="html")
+            break
+    #Show question 
     for cur_question,variants  in all_questions.items():
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SIMPLE]: # simple questinon
             res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
@@ -1076,41 +1089,32 @@ async def run_anketa(id_user, event_bot, menu):
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.ONLYONE]: # onlyone questinon
             res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
             question_number = question_number + 1
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
-            if variants:
-                path_to_file = await exist_file(variants[0])
-            if path_to_file:
-                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")
-                path_to_file=''                           
-            else:
-                await bot.send_message(id_user, cur_question, parse_mode="html")
-            question_id=question_id+1
-            continue
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
-            if variants:
-                path_to_file = await exist_file(variants[0])                
-            if path_to_file:
-                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")
-                path_to_file=''
-            else:
-                await bot.send_message(id_user, cur_question, parse_mode="html")
+        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
+             type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
+             type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.REPORT]:            
             question_id=question_id+1
             continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.TEXT]: # text
             await bot.send_message(id_user, cur_question, parse_mode="html")
             question_id=question_id+1
             continue
-        elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.REPORT]: # report
-            question_id=question_id+1
-            continue
 
         logging.debug(f"Dict res answers: {res}")
         question_id=question_id+1
-
         if res:
             answers.update(res)
         else:
-            return False 
+            return False         
+    #Show footer
+    for cur_question,type in type_questions.items():
+        if type == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
+            if all_questions[cur_question]:
+                path_to_file = await exist_file(all_questions[cur_question][0])                
+            if path_to_file:
+                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")
+                path_to_file=''
+            else:
+                await bot.send_message(id_user, cur_question, parse_mode="html")
 
     logging.debug(f"Dict All answers: {answers}")
 
@@ -1164,7 +1168,7 @@ async def show_qusetions(event_bot):
                 emoji=''
             message = message + f"  {emoji} {variant}\n"
     
-    await event_bot.respond(message)
+    await event_bot.respond(message, parse_mode="html")
     await create_admin_menu(0, event_bot)
 
 async def main_frontend():
@@ -1319,7 +1323,7 @@ sts.get_config()
 
 # Init default questions
 #'logo.jpg'
-all_questions = {   "header is header!":['lowgo.jpg'],
+all_questions = {   "header is header!":['logo.jpg'],
                     "text_q1":[],
                     "text multi select here":[],
                     "text_q2":['variant1','variant2','variant3','variant4'],
