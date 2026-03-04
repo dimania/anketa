@@ -35,6 +35,23 @@ import dbmodule as dbm
 #Glogal vars
 bot = None
 
+async def exist_file(path_to_file):
+    '''
+    Test for exist file or url
+    '''
+    if os.path.isfile('images/'+path_to_file):
+        return 'images/'+path_to_file
+    
+    try:
+        # Use HEAD request to check for existence without downloading content
+        response = requests.head(path_to_file, timeout=5)
+        # 200-299 status codes indicate success
+        if 200 <= response.status_code <= 300:
+            return path_to_file
+    except:
+        # Error get url
+        return False
+    
 class PDF(FPDF):
     
     #def __init__(self):
@@ -71,6 +88,54 @@ class PDF(FPDF):
         self.set_font('DejaVu', '', 8)
         # Page number
         self.cell(0, 10, text=str(self.page_no()) + '/{nb}', border=0, align='C')
+
+async def gen_pdf(answers, fname):
+    '''
+    Generate pdf file
+
+    answers: dict answers all users
+    fname:   filename for report
+    '''
+    # Create an instance of the FPDF class (portrait, millimeters, A4 format by default)
+    pdf = PDF()
+    pdf.set_title(sts.report_title)
+    pdf.alias_nb_pages()
+    # Add a page
+    pdf.add_page()
+    #pdf.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
+    #pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
+
+    i=1
+    j=1
+    for qst in all_questions:
+        # write question
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]:
+            message = f"{j}. {qst}"
+            pdf.set_font('DejaVu-Bold', '', 16)
+            pdf.set_left_margin(10)
+            pdf.write(text=message)
+            pdf.ln(10)
+            pdf.set_font('DejaVu', '', 14)
+            j=j+1
+        # write answers    
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # select or onlyone
+            for cur_var in answers[i]:
+                ans=all_questions.get(qst)[int(cur_var)-1]
+                pdf.set_left_margin(17)
+                pdf.write(text=str(ans))
+                pdf.ln(10)
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0]: #simple        
+            ans = str(answers[i][0])
+            pdf.set_left_margin(17)
+            pdf.write(text=ans)
+            pdf.ln(10)
+        i=i+1  
+    # Save the PDF to a file 
+    pdf.output(fname)
+    logging.info(f"PDF generated successfully as {fname}")
 
 async def add_admins(event):
     ''' Select users for add to admins list
@@ -258,160 +323,188 @@ async def get_excel_data(fname, sheet_name=0):
         logging.warning(f"Error reading Excel file: {e}")
         return False
 
-async def get_new_questions(fname):
+async def gen_excel(filename):
     '''
-    Docstring для get_new_questions
-    Get new questions from file txt,docx,xls,xlsx and return list
-    :param filename: file with questions
+    Generate excel table
     '''
-    #root,ext = os.path.splitext(fname)
-    kind = filetype.guess(fname)
-    
-    #logging.debug(f'File extension: {kind.extension}')
-    #logging.debug(f'File MIME type: {kind.mime}')
+    data={}
+    data['name_user']=[]
+    data['nick_user']=[]
+    data['question']=[]
+    data['answer_user']=[]
+    data['date']=[]
+    data['time']=[]
 
-    if kind is None:
-        logging.debug(f'Cannot guess file type filename: {fname}!')
-        return False,False,False
-    elif kind.extension == 'xlsx' or kind.extension == 'xls':
-        text_content = await get_excel_data(fname)
-        logging.debug(f'Xlsx or xls content is:{text_content}')
-    
-    if not text_content:
-        return False,False,False
-    
-    qlist={}
-    tlist={}
-    val=[]
-    warnings=''
-    id4t=1
-    sts.report_logo = sts.def_report_logo
-    sts.report_title = sts.def_report_title
-    for item in text_content['data']:
-        #item - one question and variants answers if exist
-        type_current_qusetion=item.pop(0)
-        logging.debug(f'if {type_current_qusetion} not in {sts.TYPES_OF_QUESTONS}')
-        if type_current_qusetion not in sts.TYPES_OF_QUESTONS:
-            #raise ValueError("Type of question invald!")
-            return False,False,False             
-        logging.debug(f'Item content is:{item}')
-        nan_list=pd.isna(item)
-        logging.debug(f'Item content is:{nan_list}')
-        i=False
-        # variants answer to list values dict        
-        for x, y in zip(item,nan_list):
-            logging.debug(f'i_X_Y:{i},{x},{y}')
-            if not y and i:
-                val.append(x) 
-            i=True
-        #Test on exist image files
-        if (type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
-           type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
-           type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]) and \
-           val:
-            if await exist_file(val[0]):
-                # Set user report settings else use defaut
-                if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
-                    sts.report_title = item[0]
-                    sts.report_logo = val[0]
-                    logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
-                    #continue
-            else:
-                logging.warning(f"Warning file or url {val[0]} not exist")
-                warnings=warnings+f"⚠️Внимание! файл или URL  {val[0]} не существует!\nБудет использован файл по умолчанию.\n"   
-                val[0]=''
-        if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.TEXT]: # Add some id to text for repeat in dict key            
-            item[0]=f"ID4T_{id4t}_"+item[0]
-            #val[0]=''
-            id4t = id4t + 1
+    data_ws2={}
+    data_ws2['date']=[]
+    data_ws2['time']=[]
+    data_ws2['name_user']=[]
+    data_ws2['nick_user']=[]
+   
 
-            
-            
-        qlist[item[0]]=val
-        tlist[item[0]]=type_current_qusetion
-        val=[]
-        logging.debug(f'\ntlist={tlist}\nqlist={qlist}\nwarnings={warnings}')
-    
-    return tlist,qlist,warnings
-
-async def create_admin_menu(level, event):
-    ''' Create Admin menu '''
-    logging.debug("Create menu buttons")
-    keyboard = [
-        [
-            Button.inline("📈 Показать статистику", b"/am_stats")
-        ],
-        [
-            Button.inline("📃 Пройти анкетирование", b"/am_anketa")
-        ],
-        [
-            Button.inline("📊 Получить результаты", b"/am_answers")
-        ],
-        [
-            Button.inline("📑 Текущие вопросы", b"/am_show_questions")
-        ],
-        [
-            Button.inline("⬆️ Загрузить новые вопросы", b"/am_questions")
-        ]
-        ,
-        [
-            Button.inline("📰 Загрузить изображения", b"/am_get_img")
-        ]
-        ,
-        [
-            Button.inline("👮‍♂️ Добавть администратора", b"/am_add_admins")
-        ]
-        ,
-        [
-            Button.inline("🙅‍♂️ Удалить администратора", b"/am_del_admins")
-        ]
-        ,
-        [
-            Button.inline("🕵️ Просмотреть всех админов", b"/am_show_admins")
-        ]
-    ]
-    #clear old message
-    await event.delete()
-    # send menu
-    await event.respond("**☣ Режим Администратора:**", parse_mode='md', buttons=keyboard)
-
-async def show_stats(event):
-    '''
-    show statistics for users
-    '''
-    logging.debug("Call show_stats() function")
-
+    data=defaultdict(list)
+    data_ws2=defaultdict(list)
+    sort_order_qst=[]
     async with dbm.DatabaseBot(sts.db_name) as db:
-        rows = await db.get_info_by_users()
+        rows = await db.get_info_for_report()
     if not rows:
-        await event.respond("🚷На данный момент нет информаци.\nЕще никто не прошел опрос.")
         return False
 
-    strstat=f"🔢 Ответили на вопросы: {len(rows)}\n\n👥 Список прошедших опрос:\n\n"
-
+    # Get name_user, nick_user, question, answer_user, date
     for row in rows:
-        #dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
-        #strstat=strstat+f"{dict(row).get('name_user')} { dt.strftime('%d.%m.%y %H:%M') }\n"
-        strstat=strstat+f"{dict(row).get('name_user')}\n"
+        data['name_user'].append(dict(row).get('name_user'))       
+        data['nick_user'].append(dict(row).get('nick_user'))
+        index=int(dict(row).get('question_id'))
+        #data['question'].append(all_questions[index-1])
+        key_q=list(all_questions)[index-1]
+        sort_order_qst.append(key_q)
+        data['question'].append(key_q)        
+        answer_cur=dict(row).get('answer_user')
+        logging.debug(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
+        if all_questions.get(key_q):
+            list_answer=[]
+            for variant in answer_cur.split(','): #FIXME HERE
+                list_answer.append(all_questions.get(key_q)[int(variant)-1])
 
-    await event.respond(strstat)
-  
-    return True 
+            data['answer_user'].append(', '.join(list_answer))
+            data_ws2[key_q].append(', '.join(list_answer))
+        else: 
+            data['answer_user'].append(answer_cur)
+            data_ws2[key_q].append(answer_cur)
+            
+        #2024-03-03 11:46:05.488155
+        dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
+        date = dt.strftime('%d.%m.%Y')
+        time = dt.strftime('%H:%M')
+        data['date'].append(date)
+        data['time'].append(time)
+        if dict(row).get('name_user') not in data_ws2['name_user']:
+            data_ws2['name_user'].append(dict(row).get('name_user'))       
+            data_ws2['nick_user'].append(dict(row).get('nick_user'))        
+            data_ws2['date'].append(date)
+            data_ws2['time'].append(time)
+        else:
+            continue
+    logging.debug(f"Results gen excel: {data}")
+    df = pd.DataFrame(data)
+    logging.debug(f"Results gen excel: ws2: {data_ws2}")
+    df1 = pd.DataFrame(data_ws2)
 
-async def test_send_report(event):# USE for test create report excel file
-    '''
-    send Answers DB to Admin (load results)
-    '''
-    logging.debug("Call send_answ_db() function")
+    # Order the columns 
+    df = df[["name_user", "nick_user", "question", "answer_user", "date", "time" ]]
+    sort_list_ws2=["date", "time", "name_user", "nick_user"]
+    sort_list_ws2 = sort_list_ws2 + sort_order_qst
+    logging.debug(f"Results gen excel: sort: {sort_list_ws2}")
+    df1 = df1[sort_list_ws2]
 
-    dt = datetime.now().strftime('%d%m%Y_%H%M%S')
+    # Create a Pandas Excel writer using XlsxWriter as the engine.
+    writer = pd.ExcelWriter(filename, engine="xlsxwriter")
+
+    # Write the dataframe data to XlsxWriter. Turn off the default header and
+    # index and skip one row to allow us to insert a user defined header.
+    df1.to_excel(writer, sheet_name="По вопросам", startrow=1, header=False, index=False)
+    df.to_excel(writer, sheet_name="По пользователям", startrow=1, header=False, index=False)
+    # Get the xlsxwriter workbook and worksheet objects.
+    #workbook = writer.book
+    worksheet = writer.sheets["По вопросам"]
+
+    # Get the dimensions of the dataframe.
+    (max_row, max_col) = df1.shape
+
+    # Create a list of column headers, to use in add_table().
+    column_settings = [{"header": column} for column in df1.columns]
+
+    # Add the Excel table structure. Pandas will add the data.
+    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
+
+    # Make the columns wider for clarity.
+    worksheet.set_column(0, max_col - 1, 12)
+    # Close the Pandas Excel writer and output the Excel file.
+    worksheet = writer.sheets["По пользователям"]
+
+    # Get the dimensions of the dataframe.
+    (max_row, max_col) = df.shape
+
+    # Create a list of column headers, to use in add_table().
+    column_settings = [{"header": column} for column in df.columns]
+
+    # Add the Excel table structure. Pandas will add the data.
+    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
+
+    # Make the columns wider for clarity.
+    worksheet.set_column(0, max_col - 1, 12)
+
+   
+    writer.close()
     
-    fname = f"reports/report_{dt}.xlsx"
-    logging.debug(f"Gen filename: {fname}")
-    res = await gen_excel(fname)
     return True
 
-async def send_report(event):
+async def new_gen_excel(filename):
+    '''
+    Generate excel table
+    '''
+    async with dbm.DatabaseBot(sts.db_name) as db:
+        rows = await db.get_info_for_report()
+    if not rows:
+        return False
+
+    # Get name_user, nick_user, question, answer_user, date
+    data = await set_dataframe_sheet1(rows)
+    data_ws2 = await set_dataframe_sheet2(rows)
+    df = pd.DataFrame(data)
+    #logging.info(f"Results gen excel: ws2: {data_ws2}")
+    df1 = pd.DataFrame(data_ws2)
+
+    # Order the columns if necessary.
+    #df = df[["name_user", "nick_user", "question", "answer_user", "date", "time" ]]
+    #sort_list_ws2=["date", "time", "name_user", "nick_user"]
+    #sort_list_ws2.extend(key_q)
+    #logging.info(f"Results gen excel: sort: {sort_list_ws2}")
+    #df1 = df1[["date", "time", "name_user", "nick_user", ]] # "question", "answer_user", 
+
+    # Create a Pandas Excel writer using XlsxWriter as the engine.
+    writer = pd.ExcelWriter(filename, engine="xlsxwriter")
+
+    # Write the dataframe data to XlsxWriter. Turn off the default header and
+    # index and skip one row to allow us to insert a user defined header.
+    df1.to_excel(writer, sheet_name="По вопросам", startrow=1, header=False, index=False)
+    df.to_excel(writer, sheet_name="По пользователям", startrow=1, header=False, index=False)
+    # Get the xlsxwriter workbook and worksheet objects.
+    #workbook = writer.book
+    worksheet = writer.sheets["По вопросам"]
+
+    # Get the dimensions of the dataframe.
+    (max_row, max_col) = df1.shape
+
+    # Create a list of column headers, to use in add_table().
+    column_settings = [{"header": column} for column in df1.columns]
+
+    # Add the Excel table structure. Pandas will add the data.
+    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
+
+    # Make the columns wider for clarity.
+    worksheet.set_column(0, max_col - 1, 12)
+    # Close the Pandas Excel writer and output the Excel file.
+    worksheet = writer.sheets["По пользователям"]
+
+    # Get the dimensions of the dataframe.
+    (max_row, max_col) = df.shape
+
+    # Create a list of column headers, to use in add_table().
+    column_settings = [{"header": column} for column in df.columns]
+
+    # Add the Excel table structure. Pandas will add the data.
+    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
+
+    # Make the columns wider for clarity.
+    worksheet.set_column(0, max_col - 1, 12)
+
+   
+    writer.close()
+    
+    return True
+
+async def send_excel_report(event):
     '''
     send Answers DB to Admin (load results)
     '''
@@ -430,7 +523,7 @@ async def send_report(event):
     else:
         await event.respond("🚷На данный момент нет информаци для отчета.\nЕще никто не прошел опрос.")
         return False
-
+    
 async def set_dataframe_sheet1(rows):
     '''
     Ctreate dataframe for Sheet1
@@ -534,271 +627,6 @@ async def set_dataframe_sheet2(rows):
     logging.info(f"DF2 Results gen excel:\ndata:{data}")
     return data
 
-async def new_gen_excel(filename):
-    '''
-    Generate excel table
-    '''
-    async with dbm.DatabaseBot(sts.db_name) as db:
-        rows = await db.get_info_for_report()
-    if not rows:
-        return False
-
-    # Get name_user, nick_user, question, answer_user, date
-    data = await set_dataframe_sheet1(rows)
-    data_ws2 = await set_dataframe_sheet2(rows)
-    df = pd.DataFrame(data)
-    #logging.info(f"Results gen excel: ws2: {data_ws2}")
-    df1 = pd.DataFrame(data_ws2)
-
-    # Order the columns if necessary.
-    #df = df[["name_user", "nick_user", "question", "answer_user", "date", "time" ]]
-    #sort_list_ws2=["date", "time", "name_user", "nick_user"]
-    #sort_list_ws2.extend(key_q)
-    #logging.info(f"Results gen excel: sort: {sort_list_ws2}")
-    #df1 = df1[["date", "time", "name_user", "nick_user", ]] # "question", "answer_user", 
-
-    # Create a Pandas Excel writer using XlsxWriter as the engine.
-    writer = pd.ExcelWriter(filename, engine="xlsxwriter")
-
-    # Write the dataframe data to XlsxWriter. Turn off the default header and
-    # index and skip one row to allow us to insert a user defined header.
-    df1.to_excel(writer, sheet_name="По вопросам", startrow=1, header=False, index=False)
-    df.to_excel(writer, sheet_name="По пользователям", startrow=1, header=False, index=False)
-    # Get the xlsxwriter workbook and worksheet objects.
-    #workbook = writer.book
-    worksheet = writer.sheets["По вопросам"]
-
-    # Get the dimensions of the dataframe.
-    (max_row, max_col) = df1.shape
-
-    # Create a list of column headers, to use in add_table().
-    column_settings = [{"header": column} for column in df1.columns]
-
-    # Add the Excel table structure. Pandas will add the data.
-    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
-
-    # Make the columns wider for clarity.
-    worksheet.set_column(0, max_col - 1, 12)
-    # Close the Pandas Excel writer and output the Excel file.
-    worksheet = writer.sheets["По пользователям"]
-
-    # Get the dimensions of the dataframe.
-    (max_row, max_col) = df.shape
-
-    # Create a list of column headers, to use in add_table().
-    column_settings = [{"header": column} for column in df.columns]
-
-    # Add the Excel table structure. Pandas will add the data.
-    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
-
-    # Make the columns wider for clarity.
-    worksheet.set_column(0, max_col - 1, 12)
-
-   
-    writer.close()
-    
-    return True
-
-async def gen_excel(filename):
-    '''
-    Generate excel table
-    '''
-    data={}
-    data['name_user']=[]
-    data['nick_user']=[]
-    data['question']=[]
-    data['answer_user']=[]
-    data['date']=[]
-    data['time']=[]
-
-    data_ws2={}
-    data_ws2['date']=[]
-    data_ws2['time']=[]
-    data_ws2['name_user']=[]
-    data_ws2['nick_user']=[]
-   
-
-    data=defaultdict(list)
-    data_ws2=defaultdict(list)
-    
-    async with dbm.DatabaseBot(sts.db_name) as db:
-        rows = await db.get_info_for_report()
-    if not rows:
-        return False
-
-    # Get name_user, nick_user, question, answer_user, date
-    for row in rows:
-        data['name_user'].append(dict(row).get('name_user'))       
-        data['nick_user'].append(dict(row).get('nick_user'))
-        index=int(dict(row).get('question_id'))
-        #data['question'].append(all_questions[index-1])
-        key_q=list(all_questions)[index-1]
-        data['question'].append(key_q)        
-        answer_cur=dict(row).get('answer_user')
-        logging.debug(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
-        if all_questions.get(key_q):
-            list_answer=[]
-            for variant in answer_cur.split(','): #FIXME HERE
-                list_answer.append(all_questions.get(key_q)[int(variant)-1])
-
-            data['answer_user'].append(', '.join(list_answer))
-            data_ws2[key_q].append(', '.join(list_answer))
-        else: 
-            data['answer_user'].append(answer_cur)
-            data_ws2[key_q].append(answer_cur)
-            
-        #2024-03-03 11:46:05.488155
-        dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
-        date = dt.strftime('%d.%m.%Y')
-        time = dt.strftime('%H:%M')
-        data['date'].append(date)
-        data['time'].append(time)
-        if dict(row).get('name_user') not in data_ws2['name_user']:
-            data_ws2['name_user'].append(dict(row).get('name_user'))       
-            data_ws2['nick_user'].append(dict(row).get('nick_user'))        
-            data_ws2['date'].append(date)
-            data_ws2['time'].append(time)
-        else:
-            continue
-    logging.info(f"Results gen excel: {data}")
-    df = pd.DataFrame(data)
-    logging.info(f"Results gen excel: ws2: {data_ws2}")
-    df1 = pd.DataFrame(data_ws2)
-
-    # Order the columns if necessary.
-    #df = df[["name_user", "nick_user", "question", "answer_user", "date", "time" ]]
-    #sort_list_ws2=["date", "time", "name_user", "nick_user"]
-    #sort_list_ws2.extend(key_q)
-    #logging.info(f"Results gen excel: sort: {sort_list_ws2}")
-    #df1 = df1[["date", "time", "name_user", "nick_user", ]] # "question", "answer_user", 
-
-    # Create a Pandas Excel writer using XlsxWriter as the engine.
-    writer = pd.ExcelWriter(filename, engine="xlsxwriter")
-
-    # Write the dataframe data to XlsxWriter. Turn off the default header and
-    # index and skip one row to allow us to insert a user defined header.
-    df1.to_excel(writer, sheet_name="По вопросам", startrow=1, header=False, index=False)
-    df.to_excel(writer, sheet_name="По пользователям", startrow=1, header=False, index=False)
-    # Get the xlsxwriter workbook and worksheet objects.
-    #workbook = writer.book
-    worksheet = writer.sheets["По вопросам"]
-
-    # Get the dimensions of the dataframe.
-    (max_row, max_col) = df1.shape
-
-    # Create a list of column headers, to use in add_table().
-    column_settings = [{"header": column} for column in df1.columns]
-
-    # Add the Excel table structure. Pandas will add the data.
-    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
-
-    # Make the columns wider for clarity.
-    worksheet.set_column(0, max_col - 1, 12)
-    # Close the Pandas Excel writer and output the Excel file.
-    worksheet = writer.sheets["По пользователям"]
-
-    # Get the dimensions of the dataframe.
-    (max_row, max_col) = df.shape
-
-    # Create a list of column headers, to use in add_table().
-    column_settings = [{"header": column} for column in df.columns]
-
-    # Add the Excel table structure. Pandas will add the data.
-    worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
-
-    # Make the columns wider for clarity.
-    worksheet.set_column(0, max_col - 1, 12)
-
-   
-    writer.close()
-    
-    return True
-
-async def gen_pdf(answers, fname):
-    '''
-    Generate pdf file
-
-    answers: dict answers all users
-    fname:   filename for report
-    '''
-    # Create an instance of the FPDF class (portrait, millimeters, A4 format by default)
-    pdf = PDF()
-    pdf.set_title(sts.report_title)
-    pdf.alias_nb_pages()
-    # Add a page
-    pdf.add_page()
-    #pdf.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
-    #pdf.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
-
-    i=1
-    j=1
-    for qst in all_questions:
-        # write question
-        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0] or \
-           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or \
-           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]:
-            message = f"{j}. {qst}"
-            pdf.set_font('DejaVu-Bold', '', 16)
-            pdf.set_left_margin(10)
-            pdf.write(text=message)
-            pdf.ln(10)
-            pdf.set_font('DejaVu', '', 14)
-            j=j+1
-        # write answers    
-        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1] or \
-           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # select or onlyone
-            for cur_var in answers[i]:
-                ans=all_questions.get(qst)[int(cur_var)-1]
-                pdf.set_left_margin(17)
-                pdf.write(text=str(ans))
-                pdf.ln(10)
-        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[0]: #simple        
-            ans = str(answers[i][0])
-            pdf.set_left_margin(17)
-            pdf.write(text=ans)
-            pdf.ln(10)
-        i=i+1  
-    # Save the PDF to a file 
-    pdf.output(fname)
-    logging.info(f"PDF generated successfully as {fname}")
-
-async def get_image(event_bot):
-    '''
-    get and load image, logo, etc...
-    '''
-    logging.debug("Call get_image() function")
-    fmsg=''
-    support_img=['jpeg','jpg','gif','png','webp']
-    all_entries = os.listdir('images/')
-    for file in all_entries:
-        fmsg=fmsg+file+'\n'
-
-    await event_bot.respond(\
-        f"Сейчас загружены следующие файлы:\n{fmsg}\n" \
-        "📎 Загрузите файл с изображнием.\n\n" \
-        "Поддержиаются следующие типы файлов:\n" \
-        "jpeg, jpg, gif, png, webp размером не более 5МБ")
-
-    @bot.on(events.NewMessage())
-    async def bot_handler_f_bot(event):
-        #logging.debug(f"Get NewMessage event_bot: {event}")      
-        if event.message.document:
-            download_path = await event.message.download_media(file="images/") 
-            logging.info(f'File with questions saved to: {download_path}')                                   
-            kind = filetype.guess(download_path)
-            if kind is None:
-                logging.debug(f'Cannot guess file type filename: {download_path}!')
-                message="⚠️Тип файла не определен, попробуйте другой файл!"
-                os.remove(download_path)                
-            elif kind.extension not in support_img:
-                os.remove(download_path)
-                message="⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
-            else:
-                message=f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"
-            await event.respond(message)
-            bot.remove_event_handler(bot_handler_f_bot)
-            await create_admin_menu(0, event_bot)
-
 async def get_qusetion_data(event_bot):
     '''
     get and load questions to DB Questions
@@ -845,40 +673,238 @@ async def get_qusetion_data(event_bot):
                 await event.respond(warnings)
             bot.remove_event_handler(bot_handler_f_bot)
             await create_admin_menu(0, event_bot)
-    
-async def check_user_run_anketa(id_user, event_bot, menu):
-    '''
-    Test user already answer or not
-    and continue
-    '''    
-    async with dbm.DatabaseBot(sts.db_name) as db:
-        res = await db.db_exist_id_user(id_user)
-    
-    logging.info(f"Exist_id_user: {res}")
 
-    # if user already answer     
-    if res:
-       #await event_bot.respond(f"Вы уже отвечали на вопросы.\n Желаете пройти опрос снова?\n Предыдущие ответы будут потяряны.\n")
-       keyboard = [ Button.inline("Да", b"/yes"),Button.inline("Нет", b"/no") ]
-       await event_bot.respond("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\n♨️Предыдущие ответы будут потеряны.\n", parse_mode='md', buttons=keyboard)
-      
-       @bot.on(events.CallbackQuery())
-       async def callback_yn(event):            
-            button_data = event.data.decode()
-            logging.info(f"Callback yes/no: {button_data}")
-            #await event.delete()
-            if button_data == '/no':
-                await event_bot.respond("До свидания.\n\n")
-                bot.remove_event_handler(callback_yn)                
-            elif button_data == '/yes': 
-                async with dbm.DatabaseBot(sts.db_name) as db:
-                    await db.db_del_user_answers(id_user)
-                bot.remove_event_handler(callback_yn)
-                await run_anketa(id_user, event_bot, menu)                                      
-            return 0
-    else:
-        await run_anketa(id_user, event_bot, menu)       
-        return 2
+async def get_new_questions(fname):
+    '''
+    Docstring для get_new_questions
+    Get new questions from file txt,docx,xls,xlsx and return list
+    :param filename: file with questions
+    '''
+    #root,ext = os.path.splitext(fname)
+    kind = filetype.guess(fname)
+    
+    #logging.debug(f'File extension: {kind.extension}')
+    #logging.debug(f'File MIME type: {kind.mime}')
+
+    if kind is None:
+        logging.debug(f'Cannot guess file type filename: {fname}!')
+        return False,False,False
+    elif kind.extension == 'xlsx' or kind.extension == 'xls':
+        text_content = await get_excel_data(fname)
+        logging.debug(f'Xlsx or xls content is:{text_content}')
+    
+    if not text_content:
+        return False,False,False
+    
+    qlist={}
+    tlist={}
+    val=[]
+    warnings=''
+    id4t=1
+    sts.report_logo = sts.def_report_logo
+    sts.report_title = sts.def_report_title
+    for item in text_content['data']:
+        #item - one question and variants answers if exist
+        type_current_qusetion=item.pop(0)
+        logging.debug(f'if {type_current_qusetion} not in {sts.TYPES_OF_QUESTONS}')
+        if type_current_qusetion not in sts.TYPES_OF_QUESTONS:
+            #raise ValueError("Type of question invald!")
+            return False,False,False             
+        logging.debug(f'Item content is:{item}')
+        nan_list=pd.isna(item)
+        logging.debug(f'Item content is:{nan_list}')
+        i=False
+        # variants answer to list values dict        
+        for x, y in zip(item,nan_list):
+            logging.debug(f'i_X_Y:{i},{x},{y}')
+            if not y and i:
+                val.append(x) 
+            i=True
+        #Test on exist image files
+        if (type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
+           type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
+           type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]) and \
+           val:
+            if await exist_file(val[0]):
+                # Set user report settings else use defaut
+                if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+                    sts.report_title = item[0]
+                    sts.report_logo = val[0]
+                    logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
+                    #continue
+            else:
+                logging.warning(f"Warning file or url {val[0]} not exist")
+                warnings=warnings+f"⚠️Внимание! файл или URL  {val[0]} не существует!\nБудет использован файл по умолчанию.\n"   
+                val[0]=''
+        if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.TEXT]: # Add some id to text for repeat in dict key            
+            item[0]=f"ID4T_{id4t}_"+item[0]
+            #val[0]=''
+            id4t = id4t + 1
+
+            
+            
+        qlist[item[0]]=val
+        tlist[item[0]]=type_current_qusetion
+        val=[]
+        logging.debug(f'\ntlist={tlist}\nqlist={qlist}\nwarnings={warnings}')
+    
+    return tlist,qlist,warnings
+
+async def show_qusetions(event_bot):
+    '''
+    Show all questions
+    '''
+    i=1
+    message="🧐 Текущие вопросы:"
+
+    for cur_question,type in type_questions.items():
+        if type == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
+          message = message + f"\n{cur_question}\n"  
+
+    for qst in all_questions:
+        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SIMPLE] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.ONLYONE] or \
+           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SELECT]:
+            message = message + f"\n{i}. {qst}\n"
+            i=i+1
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.TEXT]:
+              #qst.replace('ID4T_[d]_', '')
+              qst = re.sub(r"ID4T_\d+_", "", qst)
+              message = message + f"\n{qst}\n"
+              continue
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
+             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
+             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+             continue
+        for variant in all_questions.get(qst):
+            if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1]: # select 
+                emoji='🔘'
+            elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # onlyone
+                emoji='🔹'
+            else:
+                emoji=''
+            message = message + f"  {emoji} {variant}\n"
+
+    for cur_question,type in type_questions.items():
+        if type == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
+          message = message + f"\n{cur_question}\n"  
+    
+    await event_bot.respond(message, parse_mode="html")
+    await create_admin_menu(0, event_bot)
+
+async def create_admin_menu(level, event):
+    ''' Create Admin menu '''
+    logging.debug("Create menu buttons")
+    keyboard = [
+        [
+            Button.inline("📈 Показать статистику", b"/am_stats")
+        ],
+        [
+            Button.inline("📃 Пройти анкетирование", b"/am_anketa")
+        ],
+        [
+            Button.inline("📊 Получить результаты", b"/am_answers")
+        ],
+        [
+            Button.inline("📑 Текущие вопросы", b"/am_show_questions")
+        ],
+        [
+            Button.inline("⬆️ Загрузить новые вопросы", b"/am_questions")
+        ]
+        ,
+        [
+            Button.inline("📰 Загрузить изображения", b"/am_get_img")
+        ]
+        ,
+        [
+            Button.inline("👮‍♂️ Добавть администратора", b"/am_add_admins")
+        ]
+        ,
+        [
+            Button.inline("🙅‍♂️ Удалить администратора", b"/am_del_admins")
+        ]
+        ,
+        [
+            Button.inline("🕵️ Просмотреть всех админов", b"/am_show_admins")
+        ]
+    ]
+    #clear old message
+    await event.delete()
+    # send menu
+    await event.respond("**☣ Режим Администратора:**", parse_mode='md', buttons=keyboard)
+
+async def show_stats(event):
+    '''
+    show statistics for users
+    '''
+    logging.debug("Call show_stats() function")
+
+    async with dbm.DatabaseBot(sts.db_name) as db:
+        rows = await db.get_info_by_users()
+    if not rows:
+        await event.respond("🚷На данный момент нет информаци.\nЕще никто не прошел опрос.")
+        return False
+
+    strstat=f"🔢 Ответили на вопросы: {len(rows)}\n\n👥 Список прошедших опрос:\n\n"
+
+    for row in rows:
+        #dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
+        #strstat=strstat+f"{dict(row).get('name_user')} { dt.strftime('%d.%m.%y %H:%M') }\n"
+        strstat=strstat+f"{dict(row).get('name_user')}\n"
+
+    await event.respond(strstat)
+  
+    return True 
+
+async def test_send_excel_report(event):# USE for test create report excel file
+    '''
+    send Answers DB to Admin (load results)
+    '''
+    logging.debug("Call send_answ_db() function")
+
+    dt = datetime.now().strftime('%d%m%Y_%H%M%S')
+    
+    fname = f"reports/report_{dt}.xlsx"
+    logging.debug(f"Gen filename: {fname}")
+    res = await gen_excel(fname)
+    return True
+
+async def get_image(event_bot):
+    '''
+    get and load image, logo, etc...
+    '''
+    logging.debug("Call get_image() function")
+    fmsg=''
+    support_img=['jpeg','jpg','gif','png','webp']
+    all_entries = os.listdir('images/')
+    for file in all_entries:
+        fmsg=fmsg+file+'\n'
+
+    await event_bot.respond(\
+        f"Сейчас загружены следующие файлы:\n{fmsg}\n" \
+        "📎 Загрузите файл с изображнием.\n\n" \
+        "Поддержиаются следующие типы файлов:\n" \
+        "jpeg, jpg, gif, png, webp размером не более 5МБ")
+
+    @bot.on(events.NewMessage())
+    async def bot_handler_f_bot(event):
+        #logging.debug(f"Get NewMessage event_bot: {event}")      
+        if event.message.document:
+            download_path = await event.message.download_media(file="images/") 
+            logging.info(f'File with questions saved to: {download_path}')                                   
+            kind = filetype.guess(download_path)
+            if kind is None:
+                logging.debug(f'Cannot guess file type filename: {download_path}!')
+                message="⚠️Тип файла не определен, попробуйте другой файл!"
+                os.remove(download_path)                
+            elif kind.extension not in support_img:
+                os.remove(download_path)
+                message="⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
+            else:
+                message=f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"
+            await event.respond(message)
+            bot.remove_event_handler(bot_handler_f_bot)
+            await create_admin_menu(0, event_bot)
 
 async def simple_conversation(id_user, event_bot, question_number, question_id, cur_question):
     '''
@@ -1038,23 +1064,40 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
     conv.cancel()            
     return answers    
 
-async def exist_file(path_to_file):
+async def check_user_run_anketa(id_user, event_bot, menu):
     '''
-    Test for exist file or url
-    '''
-    if os.path.isfile('images/'+path_to_file):
-        return 'images/'+path_to_file
+    Test user already answer or not
+    and continue
+    '''    
+    async with dbm.DatabaseBot(sts.db_name) as db:
+        res = await db.db_exist_id_user(id_user)
     
-    try:
-        # Use HEAD request to check for existence without downloading content
-        response = requests.head(path_to_file, timeout=5)
-        # 200-299 status codes indicate success
-        if 200 <= response.status_code <= 300:
-            return path_to_file
-    except:
-        # Error get url
-        return False
-    
+    logging.info(f"Exist_id_user: {res}")
+
+    # if user already answer     
+    if res:
+       #await event_bot.respond(f"Вы уже отвечали на вопросы.\n Желаете пройти опрос снова?\n Предыдущие ответы будут потяряны.\n")
+       keyboard = [ Button.inline("Да", b"/yes"),Button.inline("Нет", b"/no") ]
+       await event_bot.respond("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\n♨️Предыдущие ответы будут потеряны.\n", parse_mode='md', buttons=keyboard)
+      
+       @bot.on(events.CallbackQuery())
+       async def callback_yn(event):            
+            button_data = event.data.decode()
+            logging.info(f"Callback yes/no: {button_data}")
+            #await event.delete()
+            if button_data == '/no':
+                await event_bot.respond("До свидания.\n\n")
+                bot.remove_event_handler(callback_yn)                
+            elif button_data == '/yes': 
+                async with dbm.DatabaseBot(sts.db_name) as db:
+                    await db.db_del_user_answers(id_user)
+                bot.remove_event_handler(callback_yn)
+                await run_anketa(id_user, event_bot, menu)                                      
+            return 0
+    else:
+        await run_anketa(id_user, event_bot, menu)       
+        return 2
+        
 async def run_anketa(id_user, event_bot, menu):
     '''
     run main process for anketting
@@ -1150,48 +1193,6 @@ async def run_anketa(id_user, event_bot, menu):
     
     return False
 
-async def show_qusetions(event_bot):
-    '''
-    Show all questions
-    '''
-    i=1
-    message="🧐 Текущие вопросы:"
-
-    for cur_question,type in type_questions.items():
-        if type == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
-          message = message + f"\n{cur_question}\n"  
-
-    for qst in all_questions:
-        if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SIMPLE] or \
-           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.ONLYONE] or \
-           type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SELECT]:
-            message = message + f"\n{i}. {qst}\n"
-            i=i+1
-        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.TEXT]:
-              #qst.replace('ID4T_[d]_', '')
-              qst = re.sub(r"ID4T_\d+_", "", qst)
-              message = message + f"\n{qst}\n"
-              continue
-        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
-             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
-             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.REPORT]:
-             continue
-        for variant in all_questions.get(qst):
-            if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1]: # select 
-                emoji='🔘'
-            elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[2]: # onlyone
-                emoji='🔹'
-            else:
-                emoji=''
-            message = message + f"  {emoji} {variant}\n"
-
-    for cur_question,type in type_questions.items():
-        if type == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
-          message = message + f"\n{cur_question}\n"  
-    
-    await event_bot.respond(message, parse_mode="html")
-    await create_admin_menu(0, event_bot)
-
 async def main_frontend():
     ''' Loop for bot connection '''
     
@@ -1254,7 +1255,7 @@ async def main_frontend():
         elif button_data == '/am_anketa':
             await check_user_run_anketa(id_user, event_bot_choice, 1)
         elif button_data == '/am_answers':
-            await send_report(event_bot_choice)
+            await send_excel_report(event_bot_choice)
             await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/am_questions':
             await get_qusetion_data(event_bot_choice)
