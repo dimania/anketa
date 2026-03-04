@@ -304,9 +304,10 @@ async def get_new_questions(fname):
                 val.append(x) 
             i=True
         #Test on exist image files
-        if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
+        if (type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
            type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
-           type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+           type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]) and \
+           val:
             if await exist_file(val[0]):
                 # Set user report settings else use defaut
                 if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
@@ -1115,6 +1116,7 @@ async def run_anketa(id_user, event_bot, menu):
                 path_to_file=''
             else:
                 await bot.send_message(id_user, cur_question, parse_mode="html")
+            break
 
     logging.debug(f"Dict All answers: {answers}")
 
@@ -1146,18 +1148,23 @@ async def show_qusetions(event_bot):
     '''
     i=1
     message="🧐 Текущие вопросы:"
+
+    for cur_question,type in type_questions.items():
+        if type == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
+          message = message + f"\n{cur_question}\n"  
+
     for qst in all_questions:
         if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SIMPLE] or \
            type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.ONLYONE] or \
            type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SELECT]:
             message = message + f"\n{i}. {qst}\n"
             i=i+1
-        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
-             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
-             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.TEXT]:            
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.TEXT]:            
               message = message + f"\n{qst}\n"
               continue
-        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.REPORT]:
+        elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
+             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
+             type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.REPORT]:
              continue
         for variant in all_questions.get(qst):
             if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[1]: # select 
@@ -1167,6 +1174,10 @@ async def show_qusetions(event_bot):
             else:
                 emoji=''
             message = message + f"  {emoji} {variant}\n"
+
+    for cur_question,type in type_questions.items():
+        if type == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
+          message = message + f"\n{cur_question}\n"  
     
     await event_bot.respond(message, parse_mode="html")
     await create_admin_menu(0, event_bot)
