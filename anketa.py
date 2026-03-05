@@ -890,7 +890,7 @@ async def get_image(event_bot):
     async def bot_handler_f_bot(event):
         logging.debug(f"WAIT image: get NewMessage event_bot: {event}")      
         #if event.message.document:
-        download_path = await event.message.download_media(file="images/") 
+        download_path = await event.message.download_media(file="images/") #FIXME neeed test if event.message.photo
         logging.info(f'File with questions saved to: {download_path}')                                   
         kind = filetype.guess(download_path)
         if kind is None:
