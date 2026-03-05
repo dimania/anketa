@@ -1,0 +1,58 @@
+services:
+  anketa_svc:
+    image: dimania/anketa4
+    command: python anketa.py
+
+    environment:
+      - TZ=Europe/Moscow
+
+    volumes:
+        - type: bind
+          source: /etc/timezone
+          target: /etc/timezone
+          read_only: true
+
+        - type: bind
+          source: /etc/localtime
+          target: /etc/localtime
+          read_only: true
+
+          # mount config file
+        - type: bind
+          source: /home/anketa/config.py
+          target: /home/anketa/config.py
+          read_only: true
+
+          # mount image dir
+        - type: bind
+          source: /home/anketa/images
+          target: /home/anketa/images
+
+          # mount dir for database file
+          # settings path file database must be changed in config file!
+        - type: bind
+          source: /home/anketa/data
+          target: /home/anketa/data
+
+          # mount dir for logs
+          # settings path log file must be changed in config file!
+        - type: bind
+          source: /home/anketa/logs
+          target: /home/anketa/logs
+
+          # mount dir for session telegram files if need
+          # settings path log file must be changed in config file!
+        - type: bind
+          source: /home/anketa/session
+          target: /home/anketa/session
+
+          # mount dir for questions file if need
+        - type: bind
+          source: /home/anketa/questionfiles
+          target: /home/anketa/questionfiles
+
+          # mount dir for report files if need
+          # settings path log file must be changed in config file!
+        - type: bind
+          source: /home/anketa/reports
+          target: /home/anketa/reports
