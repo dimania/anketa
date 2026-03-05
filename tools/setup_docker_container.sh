@@ -4,7 +4,7 @@
 # If run in other location change SRC var
 
 SRC='../'
-NAME_IMAGE='dimania/anketa4'
+NAME_IMAGE='dimania/anketa5'
 
 # copy files for container to tmp
 
@@ -20,12 +20,15 @@ cp ${SRC}/README.MD $temp_dir
 cp ${SRC}/LICENSE $temp_dir
 cp ${SRC}/requirements.txt $temp_dir
 #cp -R ${SRC}/locales $temp_dir
-cp -R ${SRC}/reports $temp_dir
+#cp -R ${SRC}/reports $temp_dir
 cp -R ${SRC}/questionfiles $temp_dir
 cp -R ${SRC}/font $temp_dir
+cp -R ${SRC}/images $temp_dir
 mkdir $temp_dir/logs
 mkdir $temp_dir/session
 mkdir $temp_dir/data
+mkdir $temp_dir/reports
+
 
 
 docker build --no-cache --file ${SRC}/tools/Dockerfile -t ${NAME_IMAGE} $temp_dir
