@@ -874,7 +874,7 @@ async def get_image(event_bot):
     get and load image, logo, etc...
     '''
     logging.debug("Call get_image() function")
-    fmsg=''
+    fmsg=''   
     support_img=['jpeg','jpg','gif','png','webp']
     all_entries = os.listdir('images/')
     for file in all_entries:
@@ -888,8 +888,14 @@ async def get_image(event_bot):
 
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
-        logging.debug(f"WAIT image: get NewMessage event_bot: {event}")      
-        if event.message.photo or event.message.document:
+        logging.debug(f"WAIT image: get NewMessage event_bot: {event}")
+        dl=False      
+        if event.message.photo: 
+            dl=True
+        if event.message.document:
+            if 'image/' in event.message.document.mime_type:
+                dl=True
+        if dl:
             download_path = await event.message.download_media(file="images/") #FIXME neeed test if event.message.photo
             logging.info(f'File with questions saved to: {download_path}')                                   
             kind = filetype.guess(download_path)
@@ -901,11 +907,11 @@ async def get_image(event_bot):
                 os.remove(download_path)
                 message="⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
             else:
-                message=f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"            
-            await event.respond(message)           
+                message=f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"                        
         else:
             message="⚠️Данный тип файла не поддерживается, попробуйте другой файл!"
-            await event.respond(message)
+        
+        await event.respond(message)
         bot.remove_event_handler(bot_handler_f_bot)
         await create_admin_menu(0, event_bot)    
         
