@@ -915,7 +915,6 @@ async def get_image(event_bot):
         bot.remove_event_handler(bot_handler_f_bot)
         await create_admin_menu(0, event_bot)    
         
-
 async def simple_conversation(id_user, event_bot, question_number, question_id, cur_question):
     '''
     simple_conversation - Dialog for simple question 
@@ -1073,6 +1072,74 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
 
     conv.cancel()            
     return answers    
+
+async def unv_select_conversation(id_user, event_bot, message, end_name_btn, list_items):
+    '''
+    select_conversation - Dialog for multi select option 
+    :param id_user: dialog for telegram user - id_user
+    :param event_bot: parent entity
+    :param message:message to uesr
+    :param list_items: list variants
+    :param: end_name_btn name last buttom in select dialog
+    return list selected variants
+    '''
+    sender = await event_bot.get_sender()
+    sender_id = sender.id
+    #sender_id = await event_bot.get_sender().id
+    button=[]
+    bdata=''
+    result=[]
+
+    async with bot.conversation(id_user) as conv:
+        def my_press_event(id_user):
+            return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
+        try:
+            #sender_id = await event_bot.get_sender().id
+            sender = await event_bot.get_sender()
+            sender_id = sender.id
+            button.clear()
+
+            for variant in list_items:
+                bdata=f'VARIANT_{variant}'
+                button.append([ Button.inline(f'🔘 {variant}', bdata)])
+            await conv.send_message(message, buttons=button)
+            
+            while True:
+                #Нandle respond
+                handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
+                event_res = await handle 
+                button_pressed = event_res.data.decode('utf-8')                
+                if button_pressed == 'ANSWER':           
+                    break     
+
+                cur_sel_var = button_pressed.replace('VARIANT_','')                           
+                logging.info(f"Get respond button text: {button_pressed}/{result}/{cur_sel_var}")
+                
+                if cur_sel_var in result:
+                    result.remove(cur_sel_var)
+                else:   
+                    result.append(cur_sel_var)
+                # Create new buttons with selected option
+                button.clear()
+                for variant in list_items:
+                    bdata=f'VARIANT_{variant}'
+                    if variant in result:
+                        emoji='🟢'
+                    else:
+                        emoji='🔘'
+                    button.append([ Button.inline(f'{emoji} {variant}', bdata)])
+                
+                bdata=f'ANSWER'
+                button.append([ Button.inline(end_name_btn, bdata)])
+                await bot.edit_message(event_res.query.user_id, event_res.query.msg_id, message, buttons=button)
+        except TimeoutError as error:
+            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
+            await conv.send_message(f"⚠️Отведенное на выбор время {sts.TIMEOUT_FOR_ANSWER} секунд истекло.")
+            conv.cancel()
+            return False
+
+    conv.cancel()            
+    return result
 
 async def check_user_run_anketa(id_user, event_bot, menu):
     '''
