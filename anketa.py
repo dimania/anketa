@@ -889,22 +889,26 @@ async def get_image(event_bot):
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
         logging.debug(f"WAIT image: get NewMessage event_bot: {event}")      
-        #if event.message.document:
-        download_path = await event.message.download_media(file="images/") #FIXME neeed test if event.message.photo
-        logging.info(f'File with questions saved to: {download_path}')                                   
-        kind = filetype.guess(download_path)
-        if kind is None:
-            logging.debug(f'Cannot guess file type filename: {download_path}!')
-            message="⚠️Тип файла не определен, попробуйте другой файл!"
-            os.remove(download_path)                
-        elif kind.extension not in support_img:
-            os.remove(download_path)
-            message="⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
+        if event.message.photo or event.message.document:
+            download_path = await event.message.download_media(file="images/") #FIXME neeed test if event.message.photo
+            logging.info(f'File with questions saved to: {download_path}')                                   
+            kind = filetype.guess(download_path)
+            if kind is None:
+                logging.debug(f'Cannot guess file type filename: {download_path}!')
+                message="⚠️Тип файла не определен, попробуйте другой файл!"
+                os.remove(download_path)                
+            elif kind.extension not in support_img:
+                os.remove(download_path)
+                message="⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
+            else:
+                message=f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"            
+            await event.respond(message)           
         else:
-            message=f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"
-        await event.respond(message)
+            message="⚠️Данный тип файла не поддерживается, попробуйте другой файл!"
+            await event.respond(message)
         bot.remove_event_handler(bot_handler_f_bot)
-        await create_admin_menu(0, event_bot)
+        await create_admin_menu(0, event_bot)    
+        
 
 async def simple_conversation(id_user, event_bot, question_number, question_id, cur_question):
     '''
