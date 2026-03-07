@@ -950,6 +950,34 @@ async def simple_conversation(id_user, event_bot, question_number, question_id, 
         conv.cancel()
         return answers      
     
+async def unv_simple_conversation(id_user, event_bot, message):
+    '''
+    simple_conversation - Dialog for simple question 
+    only text filed
+    
+    :param id_user: dialog for telegram user - id_user
+    :param event_bot: parent entity
+    :param message:message to user
+    return user text
+    '''
+
+    async with bot.conversation(id_user) as conv:
+        def my_press_event(id_user):
+            return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
+        try:
+            await conv.send_message(message)
+            #WAIT ANSWER SIMLPE HERE
+            response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
+            logging.info(f"Get respond text: {response.text}")
+        except TimeoutError as error:
+            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
+            await conv.send_message(f"⚠️Отведенное на ответ время {sts.TIMEOUT_FOR_ANSWER} секунд истекло.")
+            conv.cancel()        
+            return False
+        
+        conv.cancel()
+        return response.text
+
 async def onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question):
     '''
     onlyone_conversation - Dialog for select only one option 
@@ -997,6 +1025,46 @@ async def onlyone_conversation(id_user, event_bot, question_number, question_id,
         
     conv.cancel()        
     return answers      
+
+async def unv_onlyone_conversation(id_user, event_bot, message, list_items):
+    '''
+    onlyone_conversation - Dialog for select only one option 
+    :param id_user: dialog for telegram user - id_user
+    :param event_bot: parent entity
+    :param message:message to user
+    :param list_items: list variants
+    return selected variant
+    '''
+    sender = await event_bot.get_sender()
+    sender_id = sender.id
+    #sender_id = await event_bot.get_sender().id
+    button=[]
+    bdata=''
+    answ_v=[]
+
+    async with bot.conversation(id_user) as conv:
+        def my_press_event(id_user):
+            return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
+        try:
+            button.clear()
+            for variant in list_items:
+                bdata=f'VARIANT_{variant}'
+                button.append([Button.inline(f'🔹 {variant}', bdata)])   
+            await conv.send_message(message, buttons=button)            
+            #Нandle respond
+            handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
+            event_res = await handle 
+            button_pressed = event_res.data.decode('utf-8')
+            answ_v = button_pressed.replace('VARIANT_', '')
+            logging.debug(f"Get respond button text: button_pressed={button_pressed}/answ_v={answ_v}")
+        except TimeoutError as error:
+            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
+            await conv.send_message(f"⚠️Отведенное на выбор время {sts.TIMEOUT_FOR_ANSWER} секунд истекло.")
+            conv.cancel()
+            return False
+        
+    conv.cancel()        
+    return answ_v
 
 async def select_conversation(id_user, event_bot, question_number, question_id, cur_question):
     '''
@@ -1078,7 +1146,7 @@ async def unv_select_conversation(id_user, event_bot, message, end_name_btn, lis
     select_conversation - Dialog for multi select option 
     :param id_user: dialog for telegram user - id_user
     :param event_bot: parent entity
-    :param message:message to uesr
+    :param message:message to user
     :param list_items: list variants
     :param: end_name_btn name last buttom in select dialog
     return list selected variants
@@ -1113,7 +1181,7 @@ async def unv_select_conversation(id_user, event_bot, message, end_name_btn, lis
                     break     
 
                 cur_sel_var = button_pressed.replace('VARIANT_','')                           
-                logging.info(f"Get respond button text: {button_pressed}/{result}/{cur_sel_var}")
+                logging.debug(f"Get respond button text: button_pressed={button_pressed}/result={result}/cur_sel_var={cur_sel_var}")
                 
                 if cur_sel_var in result:
                     result.remove(cur_sel_var)
@@ -1129,7 +1197,7 @@ async def unv_select_conversation(id_user, event_bot, message, end_name_btn, lis
                         emoji='🔘'
                     button.append([ Button.inline(f'{emoji} {variant}', bdata)])
                 
-                bdata=f'ANSWER'
+                bdata='ANSWER'
                 button.append([ Button.inline(end_name_btn, bdata)])
                 await bot.edit_message(event_res.query.user_id, event_res.query.msg_id, message, buttons=button)
         except TimeoutError as error:
@@ -1196,8 +1264,8 @@ async def run_anketa(id_user, event_bot, menu):
     if sts.timeout_warning:
         await event_bot.respond(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
     #Show Header
-    for cur_question,type in type_questions.items():
-        if type == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
+    for cur_question,type_qst in type_questions.items():
+        if type_qst == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
             if all_questions[cur_question]:
                 path_to_file = await exist_file(all_questions[cur_question][0])
             if path_to_file:
@@ -1209,13 +1277,33 @@ async def run_anketa(id_user, event_bot, menu):
     #Show question 
     for cur_question,variants  in all_questions.items():
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SIMPLE]: # simple questinon
-            res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            #res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            message = f"Вопрос {question_number}:\n{cur_question}"
+            answ = await unv_simple_conversation(id_user, event_bot, message)
+            logging.debug(f"End unv_select res= {answ}")
+            res[question_id+1].append(answ)
+            logging.debug(f"End unv_select answers= {res[question_id+1]}")
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SELECT]: # select questinon
-            res = await select_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            message = f"Вопрос {question_number}:\n{cur_question}"
+            answ = await unv_select_conversation(id_user, event_bot, message, 'Ответить', variants)
+            logging.debug(f"End unv_select res= {answ}")
+            i=1
+            for var in variants:
+                if var in answ:
+                    res[question_id+1].append(str(i))
+                i = i + 1
+            res[question_id+1].sort()
+            #res = await select_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            logging.debug(f"End unv_select answers= {res[question_id+1]}")
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.ONLYONE]: # onlyone questinon
-            res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            #res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
+            message = f"Вопрос {question_number}:\n{cur_question}"
+            answ = await unv_onlyone_conversation(id_user, event_bot, message, variants)
+            logging.debug(f"End unv_select res= {answ}")
+            res[question_id+1]=str(variants.index(answ)+1)
+            logging.debug(f"End unv_select answers= {res[question_id+1]}")
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
              type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
@@ -1235,8 +1323,8 @@ async def run_anketa(id_user, event_bot, menu):
         else:
             return False         
     #Show footer
-    for cur_question,type in type_questions.items():
-        if type == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
+    for cur_question,type_qst in type_questions.items():
+        if type_qst == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
             if all_questions[cur_question]:
                 path_to_file = await exist_file(all_questions[cur_question][0])                
             if path_to_file:

@@ -58,6 +58,7 @@ logfile = 'nnmbot.log'
 
 #Report logo image file name for insert in report user
 report_logo = 'logo.jpg'
+report_title = 'Анкета'
 
 #Use proxy or d'not
 use_proxy = False # if use proxy set to 1
