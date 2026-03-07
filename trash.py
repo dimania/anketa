@@ -830,3 +830,18 @@ message=Message(id=8241, peer_id=PeerUser(user_id=7113450139), date=datetime.dat
                                                                                                     effect=None, 
                                                                                                     factcheck=None, 
                                                                                                     report_delivery_until_date=None))
+
+
+
+                                                                                                                Button.inline("📈 Показать файлы изображений", b"/fm_list_images")
+ 
+ 
+elif button_data == '/fm_list_images':
+
+elif button_data == '/fm_del_images':
+elif button_data == '/fm_list_reports':
+elif button_data == '/fm_del_reports':
+elif button_data == '/fm_down_reports':
+elif button_data == '/fm_list_qst':
+elif button_data == '/fm_del_qst':
+elif button_data == '/fm_down_qst':

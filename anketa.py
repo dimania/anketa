@@ -869,6 +869,92 @@ async def test_send_excel_report(event):# USE for test create report excel file
     res = await gen_excel(fname)
     return True
 
+async def list_files4selection(dir, exclude):
+    '''
+    list files in dir and create menu 
+    dir: directory where files
+    exclude: dont include its list files in selection
+    return selection list
+    '''
+    fbut=[]
+    all_entries = os.listdir(dir)
+    for file in all_entries:
+        if file in exclude:
+            continue
+        fbut.append(file)
+
+    return fbut
+
+async def delete_files( directory, list_files ):
+    '''
+    delete files list_files in dir
+    '''
+
+    for file in list_files:
+        f=directory+file
+        try:
+            # Check if the path points to a file before attempting removal
+            if os.path.isfile(f) or os.path.islink(f):
+                os.remove(f)
+                logging.debug(f"File removed: {f}")
+        except OSError as e:
+            logging.debug(f"Error removing {f}: {e}")
+            return False
+    return True
+
+async def create_menu_files(event): #TODO Add emoji for menu
+    '''
+    Menu work iwith files
+    '''
+
+    logging.debug("Create menu files")
+    keyboard = [
+        [
+            Button.inline("📈 Показать файлы изображений", b"/fm_list_images")
+        ],
+        [
+            Button.inline("📃 Удалить файлы изображений", b"/fm_del_images")
+        ],
+        [
+            Button.inline("📊 Показать файлы отчетов", b"/fm_list_reports")
+        ],
+        [
+            Button.inline("📑 Удалить файлы отчетов", b"/fm_del_reports")
+        ],
+        [
+            Button.inline("⬆️ Получить файлы отчетов", b"/fm_down_reports")
+        ]
+        ,
+        [
+            Button.inline("📰 Показать файлы вопросов", b"/fm_list_qst")
+        ]
+        ,
+        [
+            Button.inline("👮‍♂️ Удалить файлы вопросов", b"/fm_del_qst")
+        ]
+        ,
+        [
+            Button.inline("🙅‍♂️ Получить файлы вопросов", b"/fm_down_qst")
+        ]
+        
+    ]
+    #clear old message
+    await event.delete()
+    # send menu
+    await event.respond("**☣ Режим Администратора - файлы:**", parse_mode='md', buttons=keyboard)
+
+async def show_files(event, list): # I think no need
+    '''
+    Show files 
+    '''
+    message = ''
+    
+
+    for file in flist:
+        message =  message + f'{file}\n'
+
+    await event.respond(message)
+       
 async def get_image(event_bot):
     '''
     get and load image, logo, etc...
@@ -915,7 +1001,7 @@ async def get_image(event_bot):
         bot.remove_event_handler(bot_handler_f_bot)
         await create_admin_menu(0, event_bot)    
         
-async def simple_conversation(id_user, event_bot, question_number, question_id, cur_question):
+async def simple_conversation(id_user, event_bot, question_number, question_id, cur_question): #OLD NOT USE
     '''
     simple_conversation - Dialog for simple question 
     only text filed
@@ -978,7 +1064,7 @@ async def unv_simple_conversation(id_user, event_bot, message):
         conv.cancel()
         return response.text
 
-async def onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question):
+async def onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question): #OLD NOT USE
     '''
     onlyone_conversation - Dialog for select only one option 
     :param id_user: dialog for telegram user - id_user
@@ -1066,7 +1152,7 @@ async def unv_onlyone_conversation(id_user, event_bot, message, list_items):
     conv.cancel()        
     return answ_v
 
-async def select_conversation(id_user, event_bot, question_number, question_id, cur_question):
+async def select_conversation(id_user, event_bot, question_number, question_id, cur_question): #OLD NOT USE
     '''
     select_conversation - Dialog for multi select option 
     :param id_user: dialog for telegram user - id_user
@@ -1444,6 +1530,22 @@ async def main_frontend():
             sts.Admins.pop(admin_id_delete)
             await event_bot_choice.respond(f"🏁Админ {admin_id_delete} удален🏁")
             await create_admin_menu(menu_level, event_bot_choice)
+        elif button_data == '/fm_list_images':
+            pass
+        elif button_data == '/fm_del_images':
+            pass
+        elif button_data == '/fm_list_reports':
+            pass
+        elif button_data == '/fm_del_reports':
+            pass
+        elif button_data == '/fm_down_reports':
+            pass
+        elif button_data == '/fm_list_qst':
+            pass
+        elif button_data == '/fm_del_qst':
+            pass
+        elif button_data == '/fm_down_qst':
+            pass
     return bot
 
 async def main():
