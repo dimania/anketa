@@ -20,6 +20,7 @@ import pandas as pd
 import numpy as np
 import math
 from collections import defaultdict
+
 async def gen_excel(filename):
     '''
     Generate excel table
@@ -303,6 +304,16 @@ def main():
     data=defaultdict(list)
     data[0]=' '
     temp_dict={}
+    excl=None
+    #excl=[]
+
+    if not excl:
+        excl=[] 
+
+    if i in excl:
+        print(i)
+    
+    exit(0)
 
     for qst,type in type_questions.items():
         #variants=all_questions[cur_question]

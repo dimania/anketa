@@ -869,7 +869,7 @@ async def test_send_excel_report(event):# USE for test create report excel file
     res = await gen_excel(fname)
     return True
 
-async def list_files4selection(directory, exclude):
+async def list_files4selection(directory, exclude = None):
     '''
     list files in dir and create menu 
     dir: directory where files
@@ -877,6 +877,8 @@ async def list_files4selection(directory, exclude):
     return selection list
     '''
     fbut=[]
+    if not exclude:
+        exclude=[]
     all_entries = os.listdir(directory)
     for file in all_entries:
         if file in exclude:
@@ -939,12 +941,65 @@ async def create_menu_files(event): #TODO Add emoji for menu
         [
             Button.inline("⬇️ Получить файлы вопросов", b"/fm_down_qst")
         ]
+        ,
+        [
+            Button.inline("⬅️ Назад", b"/fm_to_amd_menu")
+        ]
         
     ]
     #clear old message
     await event.delete()
     # send menu
     await event.respond("**☣ Режим Администратора - файлы:**", parse_mode='md', buttons=keyboard)
+
+async def ui_list_files(event, directory, title, exclude = None):
+    '''
+    send to user list files
+    title: text of message
+    exclude: list files with not include to list for show user - may be default images by example 
+    '''
+    listf=await list_files4selection(directory, exclude)
+    if listf:
+        message = title + '\n'
+        for f in listf:
+            message = message + f  + '\n'
+        await event.respond(message)
+    else:
+        await event.respond('Нет файлов')
+
+async def ui_del_files(event, directory, title, exclude = None):
+    '''
+    Show user dialog for delete files
+    directory: dir - where delete files
+    title: text of message
+    exclude: list files with not include to list for show user - may be default images by example
+    '''
+    id_user = event.query.user_id
+    listf=await list_files4selection(directory, exclude)
+    if listf:
+        del_list = await unv_select_conversation(id_user, event, title, 'Готово', listf)
+        if del_list:
+            if await delete_files(directory,del_list):
+                await event.respond('Файлы удалены.')
+    else:
+        await event.respond('Нет файлов')
+
+async def ui_get_files(event, directory, title, exclude = None):
+    '''
+    Show user dialog for download files
+    directory: dir - where files
+    title: text of message
+    exclude: list files with not include to list for show user - may be default images by example
+    '''
+    listf=await list_files4selection(directory, exclude)
+    if listf:
+        rep_list = await unv_select_conversation(id_user, event, title, 'Готово', listf)
+        if rep_list:
+            for repf in rep_list:
+                await bot.send_file( id_user, directory+repf )
+                await asyncio.sleep(0,5)
+    else:
+        await event.respond('Нет файлов')
 
 async def show_files(event, list): # I think no need
     '''
@@ -1537,14 +1592,7 @@ async def main_frontend():
         elif button_data == '/fm_list_images':
             exclude=[]
             exclude.append(sts.def_report_logo)
-            listf=await list_files4selection('images/', exclude)
-            if listf:
-                message = 'Список текущих изображений:\n'
-                for f in listf:
-                    message =  message + f + '\n'
-                await event_bot_choice.respond(message)
-            else:
-                await event_bot_choice.respond('Нет файлов')
+            await ui_list_files(event_bot_choice, 'images/', 'Список текущих изображений:\n', exclude)
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_upl_images':
              await get_image(event_bot_choice)
@@ -1552,82 +1600,29 @@ async def main_frontend():
         elif button_data == '/fm_del_images':
             exclude=[]
             exclude.append(sts.def_report_logo)
-            listf=await list_files4selection('images/', exclude)
-            if listf:
-                del_list = await unv_select_conversation(id_user, event_bot_choice, 'Выберете файлы для удаления:`', 'Удалить', listf)
-                if del_list:
-                    if await delete_files('images/',del_list):
-                        await event_bot_choice.respond('Файлы удалены.')
-            else:
-                await event_bot_choice.respond('Нет файлов')
+            await ui_del_files(event_bot_choice, 'images/', 'Выберете файлы для удаления:', exclude)
             await create_menu_files(event_bot_choice)  
         elif button_data == '/fm_list_reports':
-            exclude=[]
-            #exclude.append(sts.def_report_logo)
-            listf=await list_files4selection('reports/', exclude)
-            if listf:
-                message = 'Список текущих отчетов:\n'
-                for f in listf:
-                    message =  message + f + '\n'
-                await event_bot_choice.respond(message)
-            else:
-                await event_bot_choice.respond('Нет файлов')
+            await ui_list_files(event_bot_choice, 'reports/', 'Список текущих отчетов:\n')
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_del_reports':
-            exclude=[]
-            listf=await list_files4selection('reports/', exclude)
-            if listf:
-                del_list = await unv_select_conversation(id_user, event_bot_choice, 'Выберете файлы для удаления:', 'Удалить', listf)
-                if del_list:
-                    if await delete_files('reports/',del_list):
-                        await event_bot_choice.respond('Файлы удалены.')
-            else:
-                await event_bot_choice.respond('Нет файлов')
+            await ui_del_files(event_bot_choice, 'reports/', 'Выберете файлы для удаления:')
             await create_menu_files(event_bot_choice)  
         elif button_data == '/fm_down_reports':
-            exclude=[]
-            listf=await list_files4selection('reports/', exclude)
-            if listf:
-                rep_list = await unv_select_conversation(id_user, event_bot_choice, 'Выберете файлы для получения:', 'Готово', listf)
-                if rep_list:
-                    for repf in rep_list:
-                        await bot.send_file( id_user, 'reports/'+repf )
-                        await asyncio.sleep(0,5)
-            else:
-                await event_bot_choice.respond('Нет файлов')
+            await ui_get_files(event_bot_choice, 'reports/', 'Выберете файлы для получения:')
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_list_qst':
-            exclude=[]
-            listf=await list_files4selection('questionfiles/', exclude)
-            if listf:
-                message = 'Список файлов с вопросами:\n'
-                for f in listf:
-                    message =  message + f + '\n'
-                await event_bot_choice.respond(message)
-            else:
-                await event_bot_choice.respond('Нет файлов')
+            await ui_list_files(event_bot_choice, 'questionfiles/', 'Список файлов с вопросами:\n')
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_del_qst':
-            exclude=[]
-            listf=await list_files4selection('questionfiles/', exclude)
-            if listf:
-                del_list = await unv_select_conversation(id_user, event_bot_choice, 'Выберете файлы для удаления:', 'Удалить', listf)
-                if del_list:
-                    if await delete_files('questionfiles/',del_list):
-                        await event_bot_choice.respond('Файлы удалены.')
-            else:
-                await event_bot_choice.respond('Нет файлов')
+            await ui_del_files(event_bot_choice, 'questionfiles/', 'Выберете файлы для удаления:')
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_down_qst':
-            exclude=[]
-            listf=await list_files4selection('questionfiles/', exclude)
-            if listf:
-                rep_list = await unv_select_conversation(id_user, event_bot_choice, 'Выберете файлы для получения:', 'Готово', listf)
-                if rep_list:
-                    for repf in rep_list:
-                        await bot.send_file( id_user, 'questionfiles/'+repf )
-                        await asyncio.sleep(0,5)
+            await ui_get_files(event_bot_choice, 'questionfiles/', 'Выберете файлы для получения:')
             await create_menu_files(event_bot_choice)
+        elif button_data == '/fm_to_amd_menu':
+            create_admin_menu(0,event_bot_choice)
+
     return bot
 
 async def main():
