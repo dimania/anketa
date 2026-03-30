@@ -38,6 +38,8 @@ bot = None
 async def exist_file(path_to_file):
     '''
     Test for exist file or url
+
+    param path_to_file: url or file for test
     '''
     if os.path.isfile('images/'+path_to_file):
         return 'images/'+path_to_file
@@ -93,8 +95,8 @@ async def gen_pdf(answers, fname):
     '''
     Generate pdf file
 
-    answers: dict answers all users
-    fname:   filename for report
+    param answers: dict answers all users
+    param fname:   filename for report
     '''
     # Create an instance of the FPDF class (portrait, millimeters, A4 format by default)
     pdf = PDF()
@@ -138,9 +140,10 @@ async def gen_pdf(answers, fname):
     logging.info(f"PDF generated successfully as {fname}")
 
 async def add_admins(event):
-    ''' Select users for add to admins list
-        event = bot event handled id
-        level = user level for show menu exxtended or no
+    ''' 
+    Select users for add to admins list
+
+    param event: bot event handled id    
     '''
     id_user = event.query.user_id
     logging.debug(f"Create select users dialog for user {id_user}")
@@ -219,9 +222,10 @@ async def add_admins(event):
             return None
 
 async def del_admins(event):
-    ''' Delete admins form list
-        event = bot event handled id
-        level = user level for show menu exxtended or no
+    ''' 
+    Delete admins form list
+    
+    param event: bot event handled id
     '''
     
     logging.debug("Call del_admins() function")
@@ -258,9 +262,10 @@ async def del_admins(event):
     return True
 
 async def show_admins(event):
-    ''' Show current admins
-        event = bot event handled id
-        level = user level for show menu exxtended or no
+    ''' 
+    Show current admins
+
+    param event: bot event handled id
     '''
     Builtin_Admin='💂‍♂️'
     Simply_Admin='👮'
@@ -291,6 +296,12 @@ async def show_admins(event):
     await create_admin_menu(0, event)
 
 async def check_nickname(username):
+    '''
+    Try get Nikckname of user
+
+    param username: Name of user
+    return nickname or False
+    '''
     res = {}
     try:
         # Пытаемся получить информацию о пользователе/канале по нику
@@ -312,7 +323,10 @@ async def check_nickname(username):
 async def get_excel_data(fname, sheet_name=0):
     """
     Reads data from an Excel file into a pandas DataFrame.
-    sheet_name can be an integer (0 for the first sheet) or a string ('Sheet1').
+    param fname: Excel file with questions 
+    param sheet_name: Name of Sheet - can be an integer (0 for the first sheet) or a string ('Sheet1').
+
+    return dict of data.
     """
     try:
         df = pd.read_excel(fname, sheet_name=sheet_name, header=None )
@@ -325,7 +339,9 @@ async def get_excel_data(fname, sheet_name=0):
 
 async def gen_excel(filename):
     '''
-    Generate excel table
+    Generate excel report table
+
+    param filename: filename of created report file in excel format
     '''
     data={}
     data['name_user']=[]
@@ -441,7 +457,9 @@ async def gen_excel(filename):
 
 async def new_gen_excel(filename):
     '''
-    Generate excel table
+    Generate excel report table
+
+    param filename: filename of created report file in excel format
     '''
     async with dbm.DatabaseBot(sts.db_name) as db:
         rows = await db.get_info_for_report()
@@ -506,7 +524,9 @@ async def new_gen_excel(filename):
 
 async def send_excel_report(event):
     '''
-    send Answers DB to Admin (load results)
+    Send ecxel report 
+
+    param event: bot event handled id
     '''
     logging.debug("Call send_answ_db() function")
 
@@ -527,8 +547,9 @@ async def send_excel_report(event):
 async def set_dataframe_sheet1(rows):
     '''
     Ctreate dataframe for Sheet1
-    Colums is: name_user, nick_user, question,  answer_user, date, time
-    rows: raw data from db
+    param rows: raw data from db - Colums is: name_user, nick_user, question,  answer_user, date, time
+    
+    return list data for gen excel file
     '''
     data=defaultdict(list)
     lenq=len(all_questions)
@@ -569,8 +590,10 @@ async def set_dataframe_sheet1(rows):
 async def set_dataframe_sheet2(rows):
     '''
     Ctreate dataframe for Sheet2
-    Colums is: date, time, name_user, nick_user, question1, question2 ...
-    rows: raw data from db
+    
+    param rows: raw data from db - Colums is: date, time, name_user, nick_user, question1, question2 ...
+    
+    return list data for gen excel file
     '''
     global_row=0
     variant_row=0
@@ -629,7 +652,9 @@ async def set_dataframe_sheet2(rows):
 
 async def get_qusetion_data(event_bot):
     '''
-    get and load questions to DB Questions
+    Get form user and load questions to DB Questions
+
+    param event_bot: bot event handled id
     '''
     logging.debug("Call get_qusetion_data() function")
     
@@ -676,9 +701,11 @@ async def get_qusetion_data(event_bot):
 
 async def get_new_questions(fname):
     '''
-    Docstring для get_new_questions
-    Get new questions from file txt,docx,xls,xlsx and return list
-    :param filename: file with questions
+    Get new questions from file xls,xlsx and return list
+
+    param fname: file with questions
+
+    return tlist,qlist,warnings  tlist - type of filed, qlist - text question, warnings - Warning for user if image file not exist
     '''
     #root,ext = os.path.splitext(fname)
     kind = filetype.guess(fname)
@@ -752,7 +779,9 @@ async def get_new_questions(fname):
 
 async def show_qusetions(event_bot):
     '''
-    Show all questions
+    Show all current questions
+
+    param event_bot: bot event handled id
     '''
     i=1
     message="🧐 Текущие вопросы:"
@@ -793,7 +822,12 @@ async def show_qusetions(event_bot):
     await create_admin_menu(0, event_bot)
 
 async def create_admin_menu(level, event):
-    ''' Create Admin menu '''
+    ''' 
+    Create Admin menu 
+    
+    param level: currently not used
+    param event: bot event handled id
+    '''
     logging.debug("Create menu buttons")
     keyboard = [
         [
@@ -835,7 +869,9 @@ async def create_admin_menu(level, event):
 
 async def show_stats(event):
     '''
-    show statistics for users
+    Show statistics for users
+
+    param event: bot event handled id
     '''
     logging.debug("Call show_stats() function")
 
@@ -858,7 +894,9 @@ async def show_stats(event):
 
 async def test_send_excel_report(event):# USE for test create report excel file
     '''
-    send Answers DB to Admin (load results)
+    Send answers DB to Admin (load results)
+
+    param event: bot event handled id
     '''
     logging.debug("Call send_answ_db() function")
 
@@ -871,9 +909,10 @@ async def test_send_excel_report(event):# USE for test create report excel file
 
 async def list_files4selection(directory, exclude = None):
     '''
-    list files in dir and create menu 
-    dir: directory where files
-    exclude: dont include its list files in selection
+    List files in dir and create menu 
+
+    param directory: directory where files
+    param exclude: dont include its list files in selection
     return selection list
     '''
     fbut=[]
@@ -889,11 +928,14 @@ async def list_files4selection(directory, exclude = None):
 
 async def delete_files( directory, list_files ):
     '''
-    delete files list_files in dir
+    Delete files list_files in dir
+
+    
+    param directory: dir where delete files
+    param list_files: list files from deletion
     '''
-    #TODO Add Check for ../.. etc. For safe remove files 
-    for file in list_files: 
-        f=directory+file
+    for file in list_files:
+        f=directory+os.path.basename(file)
         try:
             # Check if the path points to a file before attempting removal
             if os.path.isfile(f) or os.path.islink(f):
@@ -904,15 +946,17 @@ async def delete_files( directory, list_files ):
             return False
     return True
 
-async def create_menu_files(event): #TODO Add emoji for menu
+async def create_menu_files(event): 
     '''
-    Menu work iwith files
+    Create Menu for work with files
+
+    param event: bot event handled id
     '''
 
     logging.debug("Create menu files")
     keyboard = [
         [
-            Button.inline("📈 Показать файлы изображений", b"/fm_list_images")
+            Button.inline("🖼 Показать файлы изображений", b"/fm_list_images") #📈
         ],
         [
             Button.inline("⬆️ Загрузить файлы изображений", b"/fm_upl_images")
@@ -954,9 +998,12 @@ async def create_menu_files(event): #TODO Add emoji for menu
 
 async def ui_list_files(event, directory, title, exclude = None):
     '''
-    send to user list files
-    title: text of message
-    exclude: list files with not include to list for show user - may be default images by example 
+    Send to user list files
+
+    param event: bot event handled id
+    param directory: dir where delete files
+    param title: text of message
+    param exclude: list files with not include to list for show user - may be default images by example 
     '''
     listf=await list_files4selection(directory, exclude)
     if listf:
@@ -970,9 +1017,11 @@ async def ui_list_files(event, directory, title, exclude = None):
 async def ui_del_files(event, directory, title, exclude = None):
     '''
     Show user dialog for delete files
-    directory: dir - where delete files
-    title: text of message
-    exclude: list files with not include to list for show user - may be default images by example
+
+    param event: bot event handled id
+    param directory: dir - where delete files
+    param title: text of message
+    param exclude: list files with not include to list for show user - may be default images by example
     '''
     id_user = event.query.user_id
     listf=await list_files4selection(directory, exclude)
@@ -987,9 +1036,11 @@ async def ui_del_files(event, directory, title, exclude = None):
 async def ui_get_files(event, directory, title, exclude = None):
     '''
     Show user dialog for download files
-    directory: dir - where files
-    title: text of message
-    exclude: list files with not include to list for show user - may be default images by example
+
+    param event: bot event handled id
+    param directory: dir - where delete files
+    param title: text of message
+    param exclude: list files with not include to list for show user - may be default images by example
     '''
     id_user = event.query.user_id
     listf=await list_files4selection(directory, exclude)
@@ -1004,7 +1055,10 @@ async def ui_get_files(event, directory, title, exclude = None):
 
 async def show_files(event, flist): # I think no need
     '''
-    Show files 
+    Show files
+
+    param event: bot event handled id 
+    param flist: list of files
     '''
     message = ''
     
@@ -1016,7 +1070,9 @@ async def show_files(event, flist): # I think no need
        
 async def get_image(event_bot):
     '''
-    get and load image, logo, etc...
+    Get and load image, logo, etc...
+
+    param event_bot: bot event handled id
     '''
     logging.debug("Call get_image() function")
     fmsg=''   
@@ -1097,12 +1153,12 @@ async def simple_conversation(id_user, event_bot, question_number, question_id, 
     
 async def unv_simple_conversation(id_user, event_bot, message):
     '''
-    simple_conversation - Dialog for simple question 
-    only text filed
+    simple_conversation - Dialog for simple question, only text filed
     
-    :param id_user: dialog for telegram user - id_user
-    :param event_bot: parent entity
-    :param message:message to user
+    param id_user: dialog for telegram user - id_user
+    param event_bot: parent entity
+    param message: message to user
+
     return user text
     '''
 
@@ -1173,11 +1229,13 @@ async def onlyone_conversation(id_user, event_bot, question_number, question_id,
 
 async def unv_onlyone_conversation(id_user, event_bot, message, list_items):
     '''
-    onlyone_conversation - Dialog for select only one option 
-    :param id_user: dialog for telegram user - id_user
-    :param event_bot: parent entity
-    :param message:message to user
-    :param list_items: list variants
+    Onlyone_conversation - Dialog for select only one option 
+
+    param id_user: dialog for telegram user - id_user
+    param event_bot: parent entity
+    param message:message to user
+    param list_items: list variants
+
     return selected variant
     '''
     sender = await event_bot.get_sender()
@@ -1288,12 +1346,14 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
 
 async def unv_select_conversation(id_user, event_bot, message, end_name_btn, list_items):
     '''
-    select_conversation - Dialog for multi select option 
-    :param id_user: dialog for telegram user - id_user
-    :param event_bot: parent entity
-    :param message:message to user
-    :param list_items: list variants
-    :param: end_name_btn name last buttom in select dialog
+    Select_conversation - Dialog for multi select option 
+
+    param id_user: dialog for telegram user - id_user
+    param event_bot: parent entity
+    param message:message to user
+    param list_items: list variants
+    param: end_name_btn name last buttom in select dialog
+
     return list selected variants
     '''
     sender = await event_bot.get_sender()
@@ -1357,7 +1417,11 @@ async def unv_select_conversation(id_user, event_bot, message, end_name_btn, lis
 async def check_user_run_anketa(id_user, event_bot, menu):
     '''
     Test user already answer or not
-    and continue
+
+    param id_user: Id of user in Telegram
+    param event_bot: bot event handled id
+    param menu: Show or not basic menu - True or False
+
     '''    
     async with dbm.DatabaseBot(sts.db_name) as db:
         res = await db.db_exist_id_user(id_user)
@@ -1390,7 +1454,11 @@ async def check_user_run_anketa(id_user, event_bot, menu):
         
 async def run_anketa(id_user, event_bot, menu):
     '''
-    run main process for anketting
+    Run main process for anketting
+
+    param id_user: Id of user in Telegram
+    param event_bot: bot event handled id
+    param menu: Show or not basic menu - True or False
     '''
     user_ent = await bot.get_entity(id_user)
     nickname = user_ent.username
@@ -1504,7 +1572,9 @@ async def run_anketa(id_user, event_bot, menu):
     return False
 
 async def main_frontend():
-    ''' Loop for bot connection '''
+    ''' 
+    Create handlers for basic loop 
+    '''
     
     #global all_questions
 
@@ -1622,12 +1692,15 @@ async def main_frontend():
             await ui_get_files(event_bot_choice, 'questionfiles/', 'Выберете файлы для получения:')
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_to_adm_menu':
-            create_admin_menu(0,event_bot_choice)
+            await create_admin_menu(0,event_bot_choice)
 
     return bot
 
 async def main():
-    ''' Main function '''
+    ''' 
+    Main function - start and initialize Bot
+    
+    '''
 
     print("Start anketa Bot...")
     

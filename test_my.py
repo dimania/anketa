@@ -312,7 +312,14 @@ def main():
 
     if i in excl:
         print(i)
-    
+    file='../.././report_khl867896_7638642xlx'
+    f=os.path.basename(file)
+    print(f)
+    if file in ('.', '..', '/'):
+        print(file)
+    else: 
+        print("Bad file")
+
     exit(0)
 
     for qst,type in type_questions.items():
