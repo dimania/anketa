@@ -1002,7 +1002,7 @@ async def ui_get_files(event, directory, title, exclude = None):
     else:
         await event.respond('Нет файлов')
 
-async def show_files(event, list): # I think no need
+async def show_files(event, flist): # I think no need
     '''
     Show files 
     '''
