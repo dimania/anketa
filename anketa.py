@@ -891,8 +891,8 @@ async def delete_files( directory, list_files ):
     '''
     delete files list_files in dir
     '''
-
-    for file in list_files:
+    #TODO Add Check for ../.. etc. For safe remove files 
+    for file in list_files: 
         f=directory+file
         try:
             # Check if the path points to a file before attempting removal
@@ -943,7 +943,7 @@ async def create_menu_files(event): #TODO Add emoji for menu
         ]
         ,
         [
-            Button.inline("⬅️ Назад", b"/fm_to_amd_menu")
+            Button.inline("⬅️ Назад", b"/fm_to_adm_menu")
         ]
         
     ]
@@ -991,6 +991,7 @@ async def ui_get_files(event, directory, title, exclude = None):
     title: text of message
     exclude: list files with not include to list for show user - may be default images by example
     '''
+    id_user = event.query.user_id
     listf=await list_files4selection(directory, exclude)
     if listf:
         rep_list = await unv_select_conversation(id_user, event, title, 'Готово', listf)
@@ -1620,7 +1621,7 @@ async def main_frontend():
         elif button_data == '/fm_down_qst':
             await ui_get_files(event_bot_choice, 'questionfiles/', 'Выберете файлы для получения:')
             await create_menu_files(event_bot_choice)
-        elif button_data == '/fm_to_amd_menu':
+        elif button_data == '/fm_to_adm_menu':
             create_admin_menu(0,event_bot_choice)
 
     return bot
