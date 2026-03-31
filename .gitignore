@@ -11,4 +11,7 @@ __pycache__/*
 .idea
 .vscode
 reports/*
+!reports/.gitkeep
 questionfiles/*
+!questionfiles/.gitkeep
+
