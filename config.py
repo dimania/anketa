@@ -74,4 +74,5 @@ timeout_for_answer = 120
 log_level='INFO'
 
 # Set lang for dialogs. Possible values ru,en 
+# NOT USE NOW
 Lang='en'
