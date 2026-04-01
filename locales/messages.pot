@@ -6,6 +6,10 @@ msgstr ""
 msgid "Нажмите кнопку 'Выбор Админа' чтобы добавть в список администраторов"
 msgstr ""
 
+#: ../anketa.py:191
+msgid " уже админ!\n"
+msgstr ""
+
 #: ../anketa.py:204
 msgid "🏁Администраторы добавлены🏁"
 msgstr ""
@@ -63,6 +67,16 @@ msgstr ""
 msgid "Данные загружены в бот."
 msgstr ""
 
+#: ../anketa.py:758
+msgid "⚠️Внимание! файл или URL "
+msgstr ""
+
+#: ../anketa.py:758
+msgid ""
+" не существует!\n"
+"Будет использован файл по умолчанию.\n"
+msgstr ""
+
 #: ../anketa.py:781
 msgid "🧐 Текущие вопросы:"
 msgstr ""
@@ -111,6 +125,16 @@ msgstr ""
 msgid ""
 "🚷На данный момент нет информаци.\n"
 "Еще никто не прошел опрос."
+msgstr ""
+
+#: ../anketa.py:878
+msgid "🔢 Ответили на вопросы: "
+msgstr ""
+
+#: ../anketa.py:878
+msgid ""
+"👥 Список прошедших опрос:\n"
+"\n"
 msgstr ""
 
 #: ../anketa.py:953
@@ -169,79 +193,126 @@ msgstr ""
 msgid "Файлы удалены."
 msgstr ""
 
-#: ../anketa.py:1080
+#: ../anketa.py:1077
+msgid "Сейчас загружены следующие файлы:\n"
+msgstr ""
+
+#: ../anketa.py:1077
 msgid ""
+"\n"
 "📎 Загрузите файл с изображнием.\n"
 "\n"
 "Поддержиаются следующие типы файлов:\n"
 "jpeg, jpg, gif, png, webp размером не более 5МБ"
 msgstr ""
 
-#: ../anketa.py:1099
+#: ../anketa.py:1097
 msgid "⚠️Тип файла не определен, попробуйте другой файл!"
 msgstr ""
 
-#: ../anketa.py:1103
+#: ../anketa.py:1101
 msgid "⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
 msgstr ""
 
-#: ../anketa.py:1107
+#: ../anketa.py:1103
+msgid ""
+"Данные загружены в бот.\n"
+" Имя згруженного файла:"
+msgstr ""
+
+#: ../anketa.py:1105
 msgid "⚠️Данный тип файла не поддерживается, попробуйте другой файл!"
 msgstr ""
 
-#: ../anketa.py:1139 ../anketa.py:1215 ../anketa.py:1332
+#: ../anketa.py:1128 ../anketa.py:1198 ../anketa.py:1293 ../anketa.py:1493
+#: ../anketa.py:1500 ../anketa.py:1514
+msgid "Вопрос "
+msgstr ""
+
+#: ../anketa.py:1136 ../anketa.py:1214 ../anketa.py:1333
+msgid "⚠️Отведенное время "
+msgstr ""
+
+#: ../anketa.py:1136 ../anketa.py:1214 ../anketa.py:1333
 msgid ""
+" секунд на ответ истекло.\n"
 "Результаты не будут сохранены.\n"
 "Пожалуйста пройдите опрос заново.\n"
 "Для этого  в ≡Меню выберете Старт\n"
 msgstr ""
 
-#: ../anketa.py:1327 ../anketa.py:1496
+#: ../anketa.py:1168 ../anketa.py:1260 ../anketa.py:1407
+msgid "⚠️Отведенное на ответ время "
+msgstr ""
+
+#: ../anketa.py:1168 ../anketa.py:1260 ../anketa.py:1407
+msgid " секунд истекло."
+msgstr ""
+
+#: ../anketa.py:1329 ../anketa.py:1501
 msgid "Ответить"
 msgstr ""
 
-#: ../anketa.py:1428
+#: ../anketa.py:1432
 msgid "Да"
 msgstr ""
 
-#: ../anketa.py:1428
+#: ../anketa.py:1432
 msgid "Нет"
 msgstr ""
 
-#: ../anketa.py:1429
+#: ../anketa.py:1433
 msgid ""
 "⚠️Вы уже отвечали на вопросы.\n"
 "Желаете пройти опрос снова?\n"
 "♨️Предыдущие ответы будут потеряны.\n"
 msgstr ""
 
-#: ../anketa.py:1437
+#: ../anketa.py:1441
 msgid ""
 "До свидания.\n"
 "\n"
 msgstr ""
 
-#: ../anketa.py:1558
+#: ../anketa.py:1476
+msgid "⚠️На каждый ответ отводится "
+msgstr ""
+
+#: ../anketa.py:1476
+msgid ""
+" секунд.\n"
+"\n"
+msgstr ""
+
+#: ../anketa.py:1563
 msgid "📊 Ваш отчет"
 msgstr ""
 
 #: ../anketa.py:1660
+msgid "🏁Админ "
+msgstr ""
+
+#: ../anketa.py:1660
+msgid " удален🏁"
+msgstr ""
+
+#: ../anketa.py:1666
 msgid "Список текущих изображений:\n"
 msgstr ""
 
-#: ../anketa.py:1668 ../anketa.py:1674 ../anketa.py:1683
+#: ../anketa.py:1674 ../anketa.py:1680 ../anketa.py:1689
 msgid "Выберете файлы для удаления:"
 msgstr ""
 
-#: ../anketa.py:1671
+#: ../anketa.py:1677
 msgid "Список текущих отчетов:\n"
 msgstr ""
 
-#: ../anketa.py:1677 ../anketa.py:1686
+#: ../anketa.py:1683 ../anketa.py:1692
 msgid "Выберете файлы для получения:"
 msgstr ""
 
-#: ../anketa.py:1680
+#: ../anketa.py:1686
 msgid "Список файлов с вопросами:\n"
 msgstr ""
 

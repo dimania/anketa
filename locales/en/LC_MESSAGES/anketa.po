@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-01 14:53+0300\n"
+"POT-Creation-Date: 2026-04-01 16:53+0300\n"
 "PO-Revision-Date: 2026-04-01 14:47+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -25,6 +25,10 @@ msgstr "Admin select"
 #: ../anketa.py:167
 msgid "Нажмите кнопку 'Выбор Админа' чтобы добавть в список администраторов"
 msgstr "Press button 'Admin select' for add to adminlist"
+
+#: ../anketa.py:191
+msgid " уже админ!\n"
+msgstr "already admin!"
 
 #: ../anketa.py:204
 msgid "🏁Администраторы добавлены🏁"
@@ -52,17 +56,11 @@ msgid ""
 "\n"
 msgstr "📃List of current Admins:"
 
-#: ../anketa.py:422
-#: ../anketa.py:426
-#: ../anketa.py:489
-#: ../anketa.py:493
+#: ../anketa.py:422 ../anketa.py:426 ../anketa.py:489 ../anketa.py:493
 msgid "По вопросам"
 msgstr "By questions"
 
-#: ../anketa.py:423
-#: ../anketa.py:440
-#: ../anketa.py:490
-#: ../anketa.py:507
+#: ../anketa.py:423 ../anketa.py:440 ../anketa.py:490 ../anketa.py:507
 msgid "По пользователям"
 msgstr "By users"
 
@@ -90,6 +88,16 @@ msgstr "⚠️Wrong data. Check question file!"
 #: ../anketa.py:690
 msgid "Данные загружены в бот."
 msgstr "Data loaded to Bot."
+
+#: ../anketa.py:758
+msgid "⚠️Внимание! файл или URL "
+msgstr "⚠️Attention! file or  URL "
+
+#: ../anketa.py:758
+msgid ""
+" не существует!\n"
+"Будет использован файл по умолчанию.\n"
+msgstr "not exist!Will be use default file."
 
 #: ../anketa.py:781
 msgid "🧐 Текущие вопросы:"
@@ -141,6 +149,16 @@ msgid ""
 "Еще никто не прошел опрос."
 msgstr "🚷Now not info.Yet nobody answer."
 
+#: ../anketa.py:878
+msgid "🔢 Ответили на вопросы: "
+msgstr "🔢 Passed survey: "
+
+#: ../anketa.py:878
+msgid ""
+"👥 Список прошедших опрос:\n"
+"\n"
+msgstr "👥 List passed survey:"
+
 #: ../anketa.py:953
 msgid "🖼 Показать файлы изображений"
 msgstr "🖼 Show images files"
@@ -185,14 +203,11 @@ msgstr "⬅️ Back"
 msgid "**☣ Режим Администратора - файлы:**"
 msgstr "**☣ Admin mode - files:**"
 
-#: ../anketa.py:1009
-#: ../anketa.py:1028
-#: ../anketa.py:1048
+#: ../anketa.py:1009 ../anketa.py:1028 ../anketa.py:1048
 msgid "Нет файлов"
 msgstr "No files"
 
-#: ../anketa.py:1023
-#: ../anketa.py:1042
+#: ../anketa.py:1023 ../anketa.py:1042
 msgid "Готово"
 msgstr "Done"
 
@@ -200,8 +215,13 @@ msgstr "Done"
 msgid "Файлы удалены."
 msgstr "Files deleted"
 
-#: ../anketa.py:1080
+#: ../anketa.py:1077
+msgid "Сейчас загружены следующие файлы:\n"
+msgstr "Now already loaded files:"
+
+#: ../anketa.py:1077
 msgid ""
+"\n"
 "📎 Загрузите файл с изображнием.\n"
 "\n"
 "Поддержиаются следующие типы файлов:\n"
@@ -210,41 +230,76 @@ msgstr ""
 "📎 Load image file.Support file types: jpeg, jpg, gif, png, webp size no "
 "more 5MB"
 
-#: ../anketa.py:1099
+#: ../anketa.py:1097
 msgid "⚠️Тип файла не определен, попробуйте другой файл!"
 msgstr "⚠️Unknown file type, try other file!"
 
-#: ../anketa.py:1103
+#: ../anketa.py:1101
 msgid "⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
 msgstr "⚠️ This file type not supported, try other file!"
 
-#: ../anketa.py:1107
+#: ../anketa.py:1103
+msgid ""
+"Данные загружены в бот.\n"
+" Имя згруженного файла:"
+msgstr "Data loaded to Bot. Neme loaded file is:"
+
+#: ../anketa.py:1105
 msgid "⚠️Данный тип файла не поддерживается, попробуйте другой файл!"
 msgstr "⚠️ This file type not supported, try other file!"
 
-#: ../anketa.py:1139
-#: ../anketa.py:1215
-#: ../anketa.py:1332
+#: ../anketa.py:1128
+#: ../anketa.py:1198
+#: ../anketa.py:1293
+#: ../anketa.py:1493
+#: ../anketa.py:1500
+#: ../anketa.py:1514
+msgid "Вопрос "
+msgstr "By questions"
+
+#: ../anketa.py:1136
+#: ../anketa.py:1214
+#: ../anketa.py:1333
+msgid "⚠️Отведенное время "
+msgstr "⚠️Time for answer "
+
+#: ../anketa.py:1136
+#: ../anketa.py:1214
+#: ../anketa.py:1333
 msgid ""
+" секунд на ответ истекло.\n"
 "Результаты не будут сохранены.\n"
 "Пожалуйста пройдите опрос заново.\n"
 "Для этого  в ≡Меню выберете Старт\n"
-msgstr "Results not be saved.Please run survey yet.For this in ≡Menu Select Start"
+msgstr ""
+"seconds on answer lapsed.Results not be saved.Please run survey yet.For "
+"this in ≡Menu Select Start"
 
-#: ../anketa.py:1327
-#: ../anketa.py:1496
+#: ../anketa.py:1168
+#: ../anketa.py:1260
+#: ../anketa.py:1407
+msgid "⚠️Отведенное на ответ время "
+msgstr "⚠️Time for answer"
+
+#: ../anketa.py:1168
+#: ../anketa.py:1260
+#: ../anketa.py:1407
+msgid " секунд истекло."
+msgstr "seconds have elapsed"
+
+#: ../anketa.py:1329 ../anketa.py:1501
 msgid "Ответить"
 msgstr "Answer"
 
-#: ../anketa.py:1428
+#: ../anketa.py:1432
 msgid "Да"
 msgstr "Yes"
 
-#: ../anketa.py:1428
+#: ../anketa.py:1432
 msgid "Нет"
 msgstr "No"
 
-#: ../anketa.py:1429
+#: ../anketa.py:1433
 msgid ""
 "⚠️Вы уже отвечали на вопросы.\n"
 "Желаете пройти опрос снова?\n"
@@ -253,36 +308,51 @@ msgstr ""
 "⚠️ You already answer for all question.Would like again?♨️Previous result "
 "wil be deleted."
 
-#: ../anketa.py:1437
+#: ../anketa.py:1441
 msgid ""
 "До свидания.\n"
 "\n"
 msgstr "Goodbuy."
 
-#: ../anketa.py:1558
+#: ../anketa.py:1476
+msgid "⚠️На каждый ответ отводится "
+msgstr "⚠️Each answer is given "
+
+#: ../anketa.py:1476
+msgid ""
+" секунд.\n"
+"\n"
+msgstr "second."
+
+#: ../anketa.py:1563
 msgid "📊 Ваш отчет"
 msgstr "📊 Your report"
 
 #: ../anketa.py:1660
+msgid "🏁Админ "
+msgstr "🏁Admin "
+
+#: ../anketa.py:1660
+msgid " удален🏁"
+msgstr " deleted🏁"
+
+#: ../anketa.py:1666
 msgid "Список текущих изображений:\n"
 msgstr "List current imge files:"
 
-#: ../anketa.py:1668
-#: ../anketa.py:1674
-#: ../anketa.py:1683
+#: ../anketa.py:1674 ../anketa.py:1680 ../anketa.py:1689
 msgid "Выберете файлы для удаления:"
 msgstr "Select files for deletion:"
 
-#: ../anketa.py:1671
+#: ../anketa.py:1677
 msgid "Список текущих отчетов:\n"
 msgstr "List current reports:"
 
-#: ../anketa.py:1677
-#: ../anketa.py:1686
+#: ../anketa.py:1683 ../anketa.py:1692
 msgid "Выберете файлы для получения:"
 msgstr "Select file for download:"
 
-#: ../anketa.py:1680
+#: ../anketa.py:1686
 msgid "Список файлов с вопросами:\n"
 msgstr "List question files:"
 

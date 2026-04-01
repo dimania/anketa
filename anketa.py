@@ -188,7 +188,7 @@ async def add_admins(event):
                     for peer in event_select.message.action.peers:
                         if peer.user_id in sts.Admins:
                         #if peer.user_id in sts.Admins.keys():
-                           text_reply=text_reply+_(f"⚠️{peer.username} {peer.first_name} уже админ!\n")
+                           text_reply=text_reply+f"⚠️{peer.username} {peer.first_name}" + _(" уже админ!\n")
                            continue
                         new_admins[int(peer.user_id)]=peer.username,peer.first_name
 
@@ -755,7 +755,7 @@ async def get_new_questions(fname):
                     #continue
             else:
                 logging.warning(f"Warning file or url {val[0]} not exist")
-                warnings=warnings+_(f"⚠️Внимание! файл или URL  {val[0]} не существует!\nБудет использован файл по умолчанию.\n")   
+                warnings=warnings + _("⚠️Внимание! файл или URL ") + f"{val[0]}" + _(" не существует!\nБудет использован файл по умолчанию.\n")   
                 val[0]=''
         if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.TEXT]: # Add some id to text for repeat in dict key            
             item[0]=f"ID4T_{id4t}_"+item[0]
@@ -875,7 +875,7 @@ async def show_stats(event):
         await event.respond(_("🚷На данный момент нет информаци.\nЕще никто не прошел опрос."))
         return False
 
-    strstat=_(f"🔢 Ответили на вопросы: {len(rows)}\n\n👥 Список прошедших опрос:\n\n")
+    strstat=_("🔢 Ответили на вопросы: ") + f"{len(rows)}\n\n" + _("👥 Список прошедших опрос:\n\n")
 
     for row in rows:
         #dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
@@ -1074,12 +1074,10 @@ async def get_image(event_bot):
     all_entries = os.listdir('images/')
     for file in all_entries:
         fmsg=fmsg+file+'\n'
-
-    await event_bot.respond(\
-        _(f"Сейчас загружены следующие файлы:\n{fmsg}\n" \
-        "📎 Загрузите файл с изображнием.\n\n" \
+    message=_("Сейчас загружены следующие файлы:\n") + fmsg + _("\n📎 Загрузите файл с изображнием.\n\n" \
         "Поддержиаются следующие типы файлов:\n" \
-        "jpeg, jpg, gif, png, webp размером не более 5МБ"))
+        "jpeg, jpg, gif, png, webp размером не более 5МБ")
+    await event_bot.respond(message)
 
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
@@ -1102,7 +1100,7 @@ async def get_image(event_bot):
                 os.remove(download_path)
                 message=_("⚠️ Данный тип файла не поддерживается, попробуйте другой файл!")
             else:
-                message=_(f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"                        )
+                message=_("Данные загружены в бот.\n Имя згруженного файла:") + f"{download_path}"                       
         else:
             message=_("⚠️Данный тип файла не поддерживается, попробуйте другой файл!")
         
@@ -1127,7 +1125,7 @@ async def simple_conversation(id_user, event_bot, question_number, question_id, 
         def my_press_event(id_user):
             return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
-            await conv.send_message(_(f"Вопрос {question_number}:\n{cur_question}"))
+            await conv.send_message(_("Вопрос ")+f"{question_number}:\n{cur_question}")
             #WAIT ANSWER SIMLPE HERE
             response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
             resp_text = response.text
@@ -1135,10 +1133,11 @@ async def simple_conversation(id_user, event_bot, question_number, question_id, 
             answers[question_id+1].append(resp_text)
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
-            await conv.send_message(_(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+            message=_("⚠️Отведенное время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого  в ≡Меню выберете Старт\n"))
+                                    "Для этого  в ≡Меню выберете Старт\n")
+            await conv.send_message(message)
             conv.cancel()        
             return False
         
@@ -1166,7 +1165,8 @@ async def unv_simple_conversation(id_user, event_bot, message):
             logging.info(f"Get respond text: {response.text}")
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
-            await conv.send_message(_(f"⚠️Отведенное на ответ время {sts.TIMEOUT_FOR_ANSWER} секунд истекло."))
+            message=_("⚠️Отведенное на ответ время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд истекло.")
+            await conv.send_message(message)
             conv.cancel()        
             return False
         
@@ -1195,7 +1195,7 @@ async def onlyone_conversation(id_user, event_bot, question_number, question_id,
             return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
             button.clear()
-            str_qst=_(f"Вопрос {question_number}:\n{cur_question}")
+            str_qst=_("Вопрос ") + f"{question_number}:\n{cur_question}"
             v=1
             for variant in all_questions.get(cur_question):
                 bdata=f'VARIANT_{question_id}_{v}'
@@ -1211,10 +1211,11 @@ async def onlyone_conversation(id_user, event_bot, question_number, question_id,
             answers[question_id+1].append(answ_v[1])
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
-            await conv.send_message(_(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+            message=_("⚠️Отведенное время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого  в ≡Меню выберете Старт\n"))
+                                    "Для этого  в ≡Меню выберете Старт\n")
+            await conv.send_message(message)
             conv.cancel()
             return False
         
@@ -1256,7 +1257,8 @@ async def unv_onlyone_conversation(id_user, event_bot, message, list_items):
             logging.debug(f"Get respond button text: button_pressed={button_pressed}/answ_v={answ_v}")
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
-            await conv.send_message(_(f"⚠️Отведенное на выбор время {sts.TIMEOUT_FOR_ANSWER} секунд истекло."))
+            message=_("⚠️Отведенное на ответ время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд истекло.")
+            await conv.send_message(message)
             conv.cancel()
             return False
         
@@ -1288,7 +1290,7 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
             sender = await event_bot.get_sender()
             sender_id = sender.id
             button.clear()
-            str_qst=_(f"Вопрос {question_number}:\n{cur_question}")
+            str_qst=_("Вопрос ") + f"{question_number}:\n{cur_question}"
             v=1
             for variant in all_questions.get(cur_question):
                 bdata=f'VARIANT_{question_id}_{v}'
@@ -1328,10 +1330,11 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
                 await bot.edit_message(event_res.query.user_id, event_res.query.msg_id,str_qst, buttons=button)
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
-            await conv.send_message(_(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+            message=_("⚠️Отведенное время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого  в ≡Меню выберете Старт\n"))
+                                    "Для этого  в ≡Меню выберете Старт\n")
+            await conv.send_message(message)
             conv.cancel()
             return False
 
@@ -1401,7 +1404,8 @@ async def unv_select_conversation(id_user, event_bot, message, end_name_btn, lis
                 await bot.edit_message(event_res.query.user_id, event_res.query.msg_id, message, buttons=button)
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
-            await conv.send_message(_(f"⚠️Отведенное на выбор время {sts.TIMEOUT_FOR_ANSWER} секунд истекло."))
+            message=_("⚠️Отведенное на ответ время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд истекло.")
+            await conv.send_message(message)
             conv.cancel()
             return False
 
@@ -1469,7 +1473,8 @@ async def run_anketa(id_user, event_bot, menu):
     logging.debug(f"RUN_ANKETA: user_ent={user_ent}\nnickname={nickname}\nfirstname={first_name}\n")
 
     if sts.timeout_warning:
-        await event_bot.respond(_(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n"))
+        message=_("⚠️На каждый ответ отводится ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд.\n\n")
+        await event_bot.respond(message)
     #Show Header
     for cur_question,type_qst in type_questions.items():
         if type_qst == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
@@ -1485,14 +1490,14 @@ async def run_anketa(id_user, event_bot, menu):
     for cur_question,variants  in all_questions.items():
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SIMPLE]: # simple questinon
             #res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
-            message = _(f"Вопрос {question_number}:\n{cur_question}")
+            message = _("Вопрос ") + f"{question_number}:\n{cur_question}"
             answ = await unv_simple_conversation(id_user, event_bot, message)
             logging.debug(f"End unv_select res= {answ}")
             res[question_id+1].append(answ)
             logging.debug(f"End unv_select answers= {res[question_id+1]}")
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SELECT]: # select questinon
-            message = _(f"Вопрос {question_number}:\n{cur_question}")
+            message = _("Вопрос ") + f"{question_number}:\n{cur_question}"
             answ = await unv_select_conversation(id_user, event_bot, message, _('Ответить'), variants)
             logging.debug(f"End unv_select res= {answ}")
             i=1
@@ -1506,7 +1511,7 @@ async def run_anketa(id_user, event_bot, menu):
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.ONLYONE]: # onlyone questinon
             #res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
-            message = _(f"Вопрос {question_number}:\n{cur_question}")
+            message = _("Вопрос ") + f"{question_number}:\n{cur_question}"
             answ = await unv_onlyone_conversation(id_user, event_bot, message, variants)
             logging.debug(f"End unv_select res= {answ}")
             res[question_id+1]=str(variants.index(answ)+1)
@@ -1652,7 +1657,8 @@ async def main_frontend():
                 await db.db_del_admins(admin_id_delete)
             logging.info(f'All:{sts.Admins} admin_id_delete:_{admin_id_delete}_')
             sts.Admins.pop(admin_id_delete)
-            await event_bot_choice.respond(_(f"🏁Админ {admin_id_delete} удален🏁"))
+            message=_("🏁Админ ") + f"{admin_id_delete}" +_(" удален🏁")
+            await event_bot_choice.respond(message)
             await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/fm_list_images':
             exclude=[]
