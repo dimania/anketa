@@ -96,6 +96,7 @@ def get_config(config=cfg):
     global def_report_title
     global timeout_warning
     global TIMEOUT_FOR_ANSWER
+    global Lang
 
     cursor = None
     connection = None
@@ -113,6 +114,7 @@ def get_config(config=cfg):
         def_report_logo = config.report_logo
         def_report_title = config.report_title
         timeout_warning = config.timeout_warning
+        Lang = config.Lang
 
         if 'timeout_for_answer' in vars(config):
             TIMEOUT_FOR_ANSWER = config.timeout_for_answer

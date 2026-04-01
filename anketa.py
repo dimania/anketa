@@ -12,7 +12,7 @@ import logging
 import asyncio
 import os.path
 import sys
-#import gettext
+import gettext
 import json
 from datetime import datetime
 import requests
@@ -34,6 +34,7 @@ import dbmodule as dbm
 # --------------------------------
 #Glogal vars
 bot = None
+_ = None
 
 async def exist_file(path_to_file):
     '''
@@ -150,7 +151,7 @@ async def add_admins(event):
     
     buttons = [
     {
-        "text":"👥 Выбор Админа",
+        "text":_("👥 Выбор Админа"),
         "request_users": {
             "request_id": 1,# button id
             "max_quantity": 5,
@@ -163,7 +164,7 @@ async def add_admins(event):
     reply_markup = {"keyboard": [buttons], "resize_keyboard": True, "one_time_keyboard": True }
     payload = {
     "chat_id": id_user, # Id user to
-    "text": "Нажмите кнопку 'Выбор Админа' чтобы добавть в список администраторов", 
+    "text": _("Нажмите кнопку 'Выбор Админа' чтобы добавть в список администраторов"), 
     "reply_markup": json.dumps(reply_markup)
     }
 
@@ -187,7 +188,7 @@ async def add_admins(event):
                     for peer in event_select.message.action.peers:
                         if peer.user_id in sts.Admins:
                         #if peer.user_id in sts.Admins.keys():
-                           text_reply=text_reply+f"⚠️{peer.username} {peer.first_name} уже админ!\n"
+                           text_reply=text_reply+_(f"⚠️{peer.username} {peer.first_name} уже админ!\n")
                            continue
                         new_admins[int(peer.user_id)]=peer.username,peer.first_name
 
@@ -200,11 +201,11 @@ async def add_admins(event):
                         if ret:
                             #Update current list of admins
                             sts.Admins.update(new_admins)
-                            text_reply=text_reply+"🏁Администраторы добавлены🏁"
+                            text_reply=text_reply+_("🏁Администраторы добавлены🏁")
                         else:
-                            text_reply="🏁Ошибка добавления админа🏁"
+                            text_reply=_("🏁Ошибка добавления админа🏁")
                     else:
-                        text_reply=text_reply+"Некого добавить!"
+                        text_reply=text_reply+_("Некого добавить!")
 
                     reply_markup = { "remove_keyboard": True }
                     payload_remove_kb = {
@@ -237,7 +238,7 @@ async def del_admins(event):
     logging.debug(f"Len Admins: {len(sts.Admins)}")
    
     if len(sts.Admins) > 1:
-        message="❌ Выберете админа для удаления:"        
+        message=_("❌ Выберете админа для удаления:")
         for admin_id, cur_admin in sts.Admins.items():
             if i == 0: 
                 i=i+1
@@ -254,7 +255,7 @@ async def del_admins(event):
             button.append([ Button.inline(f'👮 {admin_name} {admin_nickname} ({admin_id})', bdata)])
             admin_nickname =''
     else:
-           await event.respond("⚠️Нет админов для удаления.")
+           await event.respond(_("⚠️Нет админов для удаления."))
            await create_admin_menu(0,event)
            return False
     
@@ -274,7 +275,7 @@ async def show_admins(event):
 
     admin_name=''
     admin_nickname=''
-    rstr='📃Cписок текущих Админов:\n\n'
+    rstr=_('📃Cписок текущих Админов:\n\n')
     for admin_id, cur_admin in sts.Admins.items(): 
         if cur_admin[1]:
             admin_name = cur_admin[1]
@@ -418,11 +419,11 @@ async def gen_excel(filename):
 
     # Write the dataframe data to XlsxWriter. Turn off the default header and
     # index and skip one row to allow us to insert a user defined header.
-    df1.to_excel(writer, sheet_name="По вопросам", startrow=1, header=False, index=False)
-    df.to_excel(writer, sheet_name="По пользователям", startrow=1, header=False, index=False)
+    df1.to_excel(writer, sheet_name=_("По вопросам"), startrow=1, header=False, index=False)
+    df.to_excel(writer, sheet_name=_("По пользователям"), startrow=1, header=False, index=False)
     # Get the xlsxwriter workbook and worksheet objects.
     #workbook = writer.book
-    worksheet = writer.sheets["По вопросам"]
+    worksheet = writer.sheets[_("По вопросам")]
 
     # Get the dimensions of the dataframe.
     (max_row, max_col) = df1.shape
@@ -436,7 +437,7 @@ async def gen_excel(filename):
     # Make the columns wider for clarity.
     worksheet.set_column(0, max_col - 1, 12)
     # Close the Pandas Excel writer and output the Excel file.
-    worksheet = writer.sheets["По пользователям"]
+    worksheet = writer.sheets[_("По пользователям")]
 
     # Get the dimensions of the dataframe.
     (max_row, max_col) = df.shape
@@ -485,11 +486,11 @@ async def new_gen_excel(filename):
 
     # Write the dataframe data to XlsxWriter. Turn off the default header and
     # index and skip one row to allow us to insert a user defined header.
-    df1.to_excel(writer, sheet_name="По вопросам", startrow=1, header=False, index=False)
-    df.to_excel(writer, sheet_name="По пользователям", startrow=1, header=False, index=False)
+    df1.to_excel(writer, sheet_name=_("По вопросам"), startrow=1, header=False, index=False)
+    df.to_excel(writer, sheet_name=_("По пользователям"), startrow=1, header=False, index=False)
     # Get the xlsxwriter workbook and worksheet objects.
     #workbook = writer.book
-    worksheet = writer.sheets["По вопросам"]
+    worksheet = writer.sheets[_("По вопросам")]
 
     # Get the dimensions of the dataframe.
     (max_row, max_col) = df1.shape
@@ -503,7 +504,7 @@ async def new_gen_excel(filename):
     # Make the columns wider for clarity.
     worksheet.set_column(0, max_col - 1, 12)
     # Close the Pandas Excel writer and output the Excel file.
-    worksheet = writer.sheets["По пользователям"]
+    worksheet = writer.sheets[_("По пользователям")]
 
     # Get the dimensions of the dataframe.
     (max_row, max_col) = df.shape
@@ -541,7 +542,7 @@ async def send_excel_report(event):
         await asyncio.sleep(3) # Delay for user after send report and show menu
         return True
     else:
-        await event.respond("🚷На данный момент нет информаци для отчета.\nЕще никто не прошел опрос.")
+        await event.respond(_("🚷На данный момент нет информаци для отчета.\nЕще никто не прошел опрос."))
         return False
     
 async def set_dataframe_sheet1(rows):
@@ -659,16 +660,9 @@ async def get_qusetion_data(event_bot):
     logging.debug("Call get_qusetion_data() function")
     
     await event_bot.respond(\
-    "📎 Загрузите файл с вопросами.\n\n" \
-    #"Поддержиаются следующие типы файлов:\n" \
-    #"🔹Текстовый файл (txt) по одному вопросу на строке\n" \
-    #"🔹MS Word файл (docx) по одному вопросу на строке\n" \
+    _("📎 Загрузите файл с вопросами.\n\n" \
     "MS Excel файл (xls,xlsx) заполненнный согласно шаблона\n"
-    #" по одному вопросу в ячейке в первой колонке\n" \
-    #"🔹варианты ответов в следующих за вопросом колонках\n" \
-    #"🔹если нет варианта ответа - ответ вводит опрашиваемый\n" \
-    #"⚠️ Старый формат MS word (doc) не поддерживается!\n" \
-    "\n♨️ Текущие вопросы и ответы будут удалены!")
+    "\n♨️ Текущие вопросы и ответы будут удалены!"))
 
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
@@ -680,7 +674,7 @@ async def get_qusetion_data(event_bot):
             #    new_questions = [line.strip() for line in file.readlines()]
             new_type_questions, new_questions, warnings = await get_new_questions(download_path)
             if not new_questions:
-                await event_bot.respond("⚠️Неверные данные, проверьте файл с вопросами!")
+                await event_bot.respond(_("⚠️Неверные данные, проверьте файл с вопросами!"))
                 bot.remove_event_handler(bot_handler_f_bot)
                 await create_admin_menu(0, event_bot)
                 return False
@@ -693,7 +687,7 @@ async def get_qusetion_data(event_bot):
             async with dbm.DatabaseBot(sts.db_name) as db:
                 await db.db_rewrite_new_questions(all_questions,type_questions)
 
-            await event.respond("Данные загружены в бот.")
+            await event.respond(_("Данные загружены в бот."))
             if warnings:
                 await event.respond(warnings)
             bot.remove_event_handler(bot_handler_f_bot)
@@ -761,7 +755,7 @@ async def get_new_questions(fname):
                     #continue
             else:
                 logging.warning(f"Warning file or url {val[0]} not exist")
-                warnings=warnings+f"⚠️Внимание! файл или URL  {val[0]} не существует!\nБудет использован файл по умолчанию.\n"   
+                warnings=warnings+_(f"⚠️Внимание! файл или URL  {val[0]} не существует!\nБудет использован файл по умолчанию.\n")   
                 val[0]=''
         if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.TEXT]: # Add some id to text for repeat in dict key            
             item[0]=f"ID4T_{id4t}_"+item[0]
@@ -784,7 +778,7 @@ async def show_qusetions(event_bot):
     param event_bot: bot event handled id
     '''
     i=1
-    message="🧐 Текущие вопросы:"
+    message=_("🧐 Текущие вопросы:")
 
     for cur_question,type in type_questions.items():
         if type == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
@@ -831,41 +825,41 @@ async def create_admin_menu(level, event):
     logging.debug("Create menu buttons")
     keyboard = [
         [
-            Button.inline("📈 Показать статистику", b"/am_stats")
+            Button.inline(_("📈 Показать статистику"), b"/am_stats")
         ],
         [
-            Button.inline("📃 Пройти анкетирование", b"/am_anketa")
+            Button.inline(_("📃 Пройти анкетирование"), b"/am_anketa")
         ],
         [
-            Button.inline("📊 Получить результаты", b"/am_answers")
+            Button.inline(_("📊 Получить результаты"), b"/am_answers")
         ],
         [
-            Button.inline("📑 Текущие вопросы", b"/am_show_questions")
+            Button.inline(_("📑 Текущие вопросы"), b"/am_show_questions")
         ],
         [
-            Button.inline("⬆️ Загрузить новые вопросы", b"/am_questions")
+            Button.inline(_("⬆️ Загрузить новые вопросы"), b"/am_questions")
         ]
         ,
         [
-            Button.inline("📰 Работа с файлами", b"/am_files")
+            Button.inline(_("📰 Работа с файлами"), b"/am_files")
         ]
         ,
         [
-            Button.inline("👮‍♂️ Добавть администратора", b"/am_add_admins")
+            Button.inline(_("👮‍♂️ Добавть администратора"), b"/am_add_admins")
         ]
         ,
         [
-            Button.inline("🙅‍♂️ Удалить администратора", b"/am_del_admins")
+            Button.inline(_("🙅‍♂️ Удалить администратора"), b"/am_del_admins")
         ]
         ,
         [
-            Button.inline("🕵️ Просмотреть всех админов", b"/am_show_admins")
+            Button.inline(_("🕵️ Просмотреть всех админов"), b"/am_show_admins")
         ]
     ]
     #clear old message
     await event.delete()
     # send menu
-    await event.respond("**☣ Режим Администратора:**", parse_mode='md', buttons=keyboard)
+    await event.respond(_("**☣ Режим Администратора:**"), parse_mode='md', buttons=keyboard)
 
 async def show_stats(event):
     '''
@@ -878,10 +872,10 @@ async def show_stats(event):
     async with dbm.DatabaseBot(sts.db_name) as db:
         rows = await db.get_info_by_users()
     if not rows:
-        await event.respond("🚷На данный момент нет информаци.\nЕще никто не прошел опрос.")
+        await event.respond(_("🚷На данный момент нет информаци.\nЕще никто не прошел опрос."))
         return False
 
-    strstat=f"🔢 Ответили на вопросы: {len(rows)}\n\n👥 Список прошедших опрос:\n\n"
+    strstat=_(f"🔢 Ответили на вопросы: {len(rows)}\n\n👥 Список прошедших опрос:\n\n")
 
     for row in rows:
         #dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
@@ -956,45 +950,45 @@ async def create_menu_files(event):
     logging.debug("Create menu files")
     keyboard = [
         [
-            Button.inline("🖼 Показать файлы изображений", b"/fm_list_images") #📈
+            Button.inline(_("🖼 Показать файлы изображений"), b"/fm_list_images") #📈
         ],
         [
-            Button.inline("⬆️ Загрузить файлы изображений", b"/fm_upl_images")
+            Button.inline(_("⬆️ Загрузить файлы изображений"), b"/fm_upl_images")
         ],
         [
-            Button.inline("🗑️ Удалить файлы изображений", b"/fm_del_images")
+            Button.inline(_("🗑️ Удалить файлы изображений"), b"/fm_del_images")
         ],
         [
-            Button.inline("📊 Показать файлы отчетов", b"/fm_list_reports")
+            Button.inline(_("📊 Показать файлы отчетов"), b"/fm_list_reports")
         ],
         [
-            Button.inline("🗑️ Удалить файлы отчетов", b"/fm_del_reports")
+            Button.inline(_("🗑️ Удалить файлы отчетов"), b"/fm_del_reports")
         ],
         [
-            Button.inline("⬇️ Получить файлы отчетов", b"/fm_down_reports")
+            Button.inline(_("⬇️ Получить файлы отчетов"), b"/fm_down_reports")
         ]
         ,
         [
-            Button.inline("📋 Показать файлы вопросов", b"/fm_list_qst")
+            Button.inline(_("📋 Показать файлы вопросов"), b"/fm_list_qst")
         ]
         ,
         [
-            Button.inline("🗑️ Удалить файлы вопросов", b"/fm_del_qst")
+            Button.inline(_("🗑️ Удалить файлы вопросов"), b"/fm_del_qst")
         ]
         ,
         [
-            Button.inline("⬇️ Получить файлы вопросов", b"/fm_down_qst")
+            Button.inline(_("⬇️ Получить файлы вопросов"), b"/fm_down_qst")
         ]
         ,
         [
-            Button.inline("⬅️ Назад", b"/fm_to_adm_menu")
+            Button.inline(_("⬅️ Назад"), b"/fm_to_adm_menu")
         ]
         
     ]
     #clear old message
     await event.delete()
     # send menu
-    await event.respond("**☣ Режим Администратора - файлы:**", parse_mode='md', buttons=keyboard)
+    await event.respond(_("**☣ Режим Администратора - файлы:**"), parse_mode='md', buttons=keyboard)
 
 async def ui_list_files(event, directory, title, exclude = None):
     '''
@@ -1012,7 +1006,7 @@ async def ui_list_files(event, directory, title, exclude = None):
             message = message + f  + '\n'
         await event.respond(message)
     else:
-        await event.respond('Нет файлов')
+        await event.respond(_('Нет файлов'))
 
 async def ui_del_files(event, directory, title, exclude = None):
     '''
@@ -1026,12 +1020,12 @@ async def ui_del_files(event, directory, title, exclude = None):
     id_user = event.query.user_id
     listf=await list_files4selection(directory, exclude)
     if listf:
-        del_list = await unv_select_conversation(id_user, event, title, 'Готово', listf)
+        del_list = await unv_select_conversation(id_user, event, title, _('Готово'), listf)
         if del_list:
             if await delete_files(directory,del_list):
-                await event.respond('Файлы удалены.')
+                await event.respond(_('Файлы удалены.'))
     else:
-        await event.respond('Нет файлов')
+        await event.respond(_('Нет файлов'))
 
 async def ui_get_files(event, directory, title, exclude = None):
     '''
@@ -1045,13 +1039,13 @@ async def ui_get_files(event, directory, title, exclude = None):
     id_user = event.query.user_id
     listf=await list_files4selection(directory, exclude)
     if listf:
-        rep_list = await unv_select_conversation(id_user, event, title, 'Готово', listf)
+        rep_list = await unv_select_conversation(id_user, event, title, _('Готово'), listf)
         if rep_list:
             for repf in rep_list:
                 await bot.send_file( id_user, directory+repf )
                 await asyncio.sleep(0,5)
     else:
-        await event.respond('Нет файлов')
+        await event.respond(_('Нет файлов'))
 
 async def show_files(event, flist): # I think no need
     '''
@@ -1082,10 +1076,10 @@ async def get_image(event_bot):
         fmsg=fmsg+file+'\n'
 
     await event_bot.respond(\
-        f"Сейчас загружены следующие файлы:\n{fmsg}\n" \
+        _(f"Сейчас загружены следующие файлы:\n{fmsg}\n" \
         "📎 Загрузите файл с изображнием.\n\n" \
         "Поддержиаются следующие типы файлов:\n" \
-        "jpeg, jpg, gif, png, webp размером не более 5МБ")
+        "jpeg, jpg, gif, png, webp размером не более 5МБ"))
 
     @bot.on(events.NewMessage())
     async def bot_handler_f_bot(event):
@@ -1102,15 +1096,15 @@ async def get_image(event_bot):
             kind = filetype.guess(download_path)
             if kind is None:
                 logging.debug(f'Cannot guess file type filename: {download_path}!')
-                message="⚠️Тип файла не определен, попробуйте другой файл!"
+                message=_("⚠️Тип файла не определен, попробуйте другой файл!")
                 os.remove(download_path)                
             elif kind.extension not in support_img:
                 os.remove(download_path)
-                message="⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
+                message=_("⚠️ Данный тип файла не поддерживается, попробуйте другой файл!")
             else:
-                message=f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"                        
+                message=_(f"Данные загружены в бот.\n Имя згруженного файла: {download_path}"                        )
         else:
-            message="⚠️Данный тип файла не поддерживается, попробуйте другой файл!"
+            message=_("⚠️Данный тип файла не поддерживается, попробуйте другой файл!")
         
         await event.respond(message)
         bot.remove_event_handler(bot_handler_f_bot)
@@ -1133,7 +1127,7 @@ async def simple_conversation(id_user, event_bot, question_number, question_id, 
         def my_press_event(id_user):
             return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
-            await conv.send_message(f"Вопрос {question_number}:\n{cur_question}")
+            await conv.send_message(_(f"Вопрос {question_number}:\n{cur_question}"))
             #WAIT ANSWER SIMLPE HERE
             response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
             resp_text = response.text
@@ -1141,10 +1135,10 @@ async def simple_conversation(id_user, event_bot, question_number, question_id, 
             answers[question_id+1].append(resp_text)
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
-            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+            await conv.send_message(_(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого  в ≡Меню выберете Старт\n")
+                                    "Для этого  в ≡Меню выберете Старт\n"))
             conv.cancel()        
             return False
         
@@ -1172,7 +1166,7 @@ async def unv_simple_conversation(id_user, event_bot, message):
             logging.info(f"Get respond text: {response.text}")
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
-            await conv.send_message(f"⚠️Отведенное на ответ время {sts.TIMEOUT_FOR_ANSWER} секунд истекло.")
+            await conv.send_message(_(f"⚠️Отведенное на ответ время {sts.TIMEOUT_FOR_ANSWER} секунд истекло."))
             conv.cancel()        
             return False
         
@@ -1201,7 +1195,7 @@ async def onlyone_conversation(id_user, event_bot, question_number, question_id,
             return events.CallbackQuery(func=lambda e: e.sender_id == id_user) #FIXME Need or not use pattern for get button?
         try:
             button.clear()
-            str_qst=f"Вопрос {question_number}:\n{cur_question}"
+            str_qst=_(f"Вопрос {question_number}:\n{cur_question}")
             v=1
             for variant in all_questions.get(cur_question):
                 bdata=f'VARIANT_{question_id}_{v}'
@@ -1217,10 +1211,10 @@ async def onlyone_conversation(id_user, event_bot, question_number, question_id,
             answers[question_id+1].append(answ_v[1])
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
-            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+            await conv.send_message(_(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого  в ≡Меню выберете Старт\n")
+                                    "Для этого  в ≡Меню выберете Старт\n"))
             conv.cancel()
             return False
         
@@ -1262,7 +1256,7 @@ async def unv_onlyone_conversation(id_user, event_bot, message, list_items):
             logging.debug(f"Get respond button text: button_pressed={button_pressed}/answ_v={answ_v}")
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
-            await conv.send_message(f"⚠️Отведенное на выбор время {sts.TIMEOUT_FOR_ANSWER} секунд истекло.")
+            await conv.send_message(_(f"⚠️Отведенное на выбор время {sts.TIMEOUT_FOR_ANSWER} секунд истекло."))
             conv.cancel()
             return False
         
@@ -1294,7 +1288,7 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
             sender = await event_bot.get_sender()
             sender_id = sender.id
             button.clear()
-            str_qst=f"Вопрос {question_number}:\n{cur_question}"
+            str_qst=_(f"Вопрос {question_number}:\n{cur_question}")
             v=1
             for variant in all_questions.get(cur_question):
                 bdata=f'VARIANT_{question_id}_{v}'
@@ -1330,14 +1324,14 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
                     i=i+1
                 
                 bdata=f'ANSWER_{question_id}'
-                button.append([ Button.inline('Ответить', bdata)])
+                button.append([ Button.inline(_('Ответить'), bdata)])
                 await bot.edit_message(event_res.query.user_id, event_res.query.msg_id,str_qst, buttons=button)
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
-            await conv.send_message(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
+            await conv.send_message(_(f"⚠️Отведенное время {sts.TIMEOUT_FOR_ANSWER} секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
-                                    "Для этого  в ≡Меню выберете Старт\n")
+                                    "Для этого  в ≡Меню выберете Старт\n"))
             conv.cancel()
             return False
 
@@ -1407,7 +1401,7 @@ async def unv_select_conversation(id_user, event_bot, message, end_name_btn, lis
                 await bot.edit_message(event_res.query.user_id, event_res.query.msg_id, message, buttons=button)
         except TimeoutError as error:
             logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
-            await conv.send_message(f"⚠️Отведенное на выбор время {sts.TIMEOUT_FOR_ANSWER} секунд истекло.")
+            await conv.send_message(_(f"⚠️Отведенное на выбор время {sts.TIMEOUT_FOR_ANSWER} секунд истекло."))
             conv.cancel()
             return False
 
@@ -1431,8 +1425,8 @@ async def check_user_run_anketa(id_user, event_bot, menu):
     # if user already answer     
     if res:
        #await event_bot.respond(f"Вы уже отвечали на вопросы.\n Желаете пройти опрос снова?\n Предыдущие ответы будут потяряны.\n")
-       keyboard = [ Button.inline("Да", b"/yes"),Button.inline("Нет", b"/no") ]
-       await event_bot.respond("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\n♨️Предыдущие ответы будут потеряны.\n", parse_mode='md', buttons=keyboard)
+       keyboard = [ Button.inline(_("Да"), b"/yes"),Button.inline(_("Нет"), b"/no") ]
+       await event_bot.respond(_("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\n♨️Предыдущие ответы будут потеряны.\n"), parse_mode='md', buttons=keyboard)
       
        @bot.on(events.CallbackQuery())
        async def callback_yn(event):            
@@ -1440,7 +1434,7 @@ async def check_user_run_anketa(id_user, event_bot, menu):
             logging.info(f"Callback yes/no: {button_data}")
             #await event.delete()
             if button_data == '/no':
-                await event_bot.respond("До свидания.\n\n")
+                await event_bot.respond(_("До свидания.\n\n"))
                 bot.remove_event_handler(callback_yn)                
             elif button_data == '/yes': 
                 async with dbm.DatabaseBot(sts.db_name) as db:
@@ -1475,7 +1469,7 @@ async def run_anketa(id_user, event_bot, menu):
     logging.debug(f"RUN_ANKETA: user_ent={user_ent}\nnickname={nickname}\nfirstname={first_name}\n")
 
     if sts.timeout_warning:
-        await event_bot.respond(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n")
+        await event_bot.respond(_(f"⚠️На каждый ответ отводится {sts.TIMEOUT_FOR_ANSWER} секунд.\n\n"))
     #Show Header
     for cur_question,type_qst in type_questions.items():
         if type_qst == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
@@ -1491,15 +1485,15 @@ async def run_anketa(id_user, event_bot, menu):
     for cur_question,variants  in all_questions.items():
         if type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SIMPLE]: # simple questinon
             #res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
-            message = f"Вопрос {question_number}:\n{cur_question}"
+            message = _(f"Вопрос {question_number}:\n{cur_question}")
             answ = await unv_simple_conversation(id_user, event_bot, message)
             logging.debug(f"End unv_select res= {answ}")
             res[question_id+1].append(answ)
             logging.debug(f"End unv_select answers= {res[question_id+1]}")
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SELECT]: # select questinon
-            message = f"Вопрос {question_number}:\n{cur_question}"
-            answ = await unv_select_conversation(id_user, event_bot, message, 'Ответить', variants)
+            message = _(f"Вопрос {question_number}:\n{cur_question}")
+            answ = await unv_select_conversation(id_user, event_bot, message, _('Ответить'), variants)
             logging.debug(f"End unv_select res= {answ}")
             i=1
             for var in variants:
@@ -1512,7 +1506,7 @@ async def run_anketa(id_user, event_bot, menu):
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.ONLYONE]: # onlyone questinon
             #res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
-            message = f"Вопрос {question_number}:\n{cur_question}"
+            message = _(f"Вопрос {question_number}:\n{cur_question}")
             answ = await unv_onlyone_conversation(id_user, event_bot, message, variants)
             logging.debug(f"End unv_select res= {answ}")
             res[question_id+1]=str(variants.index(answ)+1)
@@ -1561,7 +1555,7 @@ async def run_anketa(id_user, event_bot, menu):
         fname = f"reports/rpt_{id_user}_{dt}.pdf"
         logging.debug(f"Gen pdf filename: {fname}")
         await gen_pdf(answers,fname)
-        message="📊 Ваш отчет"
+        message=_("📊 Ваш отчет")
         await bot.send_file( id_user, fname, caption=message, parse_mode="html" )
         #await asyncio.sleep(1) # Delay for user after send report and show menu
         if menu: 
@@ -1658,12 +1652,12 @@ async def main_frontend():
                 await db.db_del_admins(admin_id_delete)
             logging.info(f'All:{sts.Admins} admin_id_delete:_{admin_id_delete}_')
             sts.Admins.pop(admin_id_delete)
-            await event_bot_choice.respond(f"🏁Админ {admin_id_delete} удален🏁")
+            await event_bot_choice.respond(_(f"🏁Админ {admin_id_delete} удален🏁"))
             await create_admin_menu(menu_level, event_bot_choice)
         elif button_data == '/fm_list_images':
             exclude=[]
             exclude.append(sts.def_report_logo)
-            await ui_list_files(event_bot_choice, 'images/', 'Список текущих изображений:\n', exclude)
+            await ui_list_files(event_bot_choice, 'images/', _('Список текущих изображений:\n'), exclude)
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_upl_images':
              await get_image(event_bot_choice)
@@ -1671,25 +1665,25 @@ async def main_frontend():
         elif button_data == '/fm_del_images':
             exclude=[]
             exclude.append(sts.def_report_logo)
-            await ui_del_files(event_bot_choice, 'images/', 'Выберете файлы для удаления:', exclude)
+            await ui_del_files(event_bot_choice, 'images/', _('Выберете файлы для удаления:'), exclude)
             await create_menu_files(event_bot_choice)  
         elif button_data == '/fm_list_reports':
-            await ui_list_files(event_bot_choice, 'reports/', 'Список текущих отчетов:\n')
+            await ui_list_files(event_bot_choice, 'reports/', _('Список текущих отчетов:\n'))
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_del_reports':
-            await ui_del_files(event_bot_choice, 'reports/', 'Выберете файлы для удаления:')
+            await ui_del_files(event_bot_choice, 'reports/', _('Выберете файлы для удаления:'))
             await create_menu_files(event_bot_choice)  
         elif button_data == '/fm_down_reports':
-            await ui_get_files(event_bot_choice, 'reports/', 'Выберете файлы для получения:')
+            await ui_get_files(event_bot_choice, 'reports/', _('Выберете файлы для получения:'))
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_list_qst':
-            await ui_list_files(event_bot_choice, 'questionfiles/', 'Список файлов с вопросами:\n')
+            await ui_list_files(event_bot_choice, 'questionfiles/', _('Список файлов с вопросами:\n'))
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_del_qst':
-            await ui_del_files(event_bot_choice, 'questionfiles/', 'Выберете файлы для удаления:')
+            await ui_del_files(event_bot_choice, 'questionfiles/', _('Выберете файлы для удаления:'))
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_down_qst':
-            await ui_get_files(event_bot_choice, 'questionfiles/', 'Выберете файлы для получения:')
+            await ui_get_files(event_bot_choice, 'questionfiles/', _('Выберете файлы для получения:'))
             await create_menu_files(event_bot_choice)
         elif button_data == '/fm_to_adm_menu':
             await create_admin_menu(0,event_bot_choice)
@@ -1791,6 +1785,14 @@ logging.basicConfig(level=sts.log_level, filename=filename, filemode="a", format
 logging.info("Start frontend bot.")
 
 localedir = os.path.join(os.path.dirname(os.path.realpath(os.path.normpath(sys.argv[0]))), 'locales')
+
+if os.path.isdir(localedir):
+    translate = gettext.translation('anketa', localedir, [sts.Lang])
+    _ = translate.gettext
+else: 
+    logging.info(f"No locale dir found for support langs: {localedir} \n Use default lang: Russian")
+    def _(message): return message
+
 
 if sts.use_proxy:
     prx = re.search('(^.*)://(.*):(.*$)', sts.proxies.get('http'))

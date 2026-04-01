@@ -1,0 +1,468 @@
+# English translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-04-01 14:53+0300\n"
+"PO-Revision-Date: 2026-04-01 14:47+0300\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../anketa.py:154
+msgid "👥 Выбор Админа"
+msgstr "Admin select"
+
+#: ../anketa.py:167
+msgid "Нажмите кнопку 'Выбор Админа' чтобы добавть в список администраторов"
+msgstr "Press button 'Admin select' for add to adminlist"
+
+#: ../anketa.py:204
+msgid "🏁Администраторы добавлены🏁"
+msgstr "🏁Admins added🏁"
+
+#: ../anketa.py:206
+msgid "🏁Ошибка добавления админа🏁"
+msgstr "🏁Error add admin🏁"
+
+#: ../anketa.py:208
+msgid "Некого добавить!"
+msgstr "Nothing for add!"
+
+#: ../anketa.py:241
+msgid "❌ Выберете админа для удаления:"
+msgstr "❌Select admin for deletion:"
+
+#: ../anketa.py:258
+msgid "⚠️Нет админов для удаления."
+msgstr "⚠️Not admins for deletion."
+
+#: ../anketa.py:278
+msgid ""
+"📃Cписок текущих Админов:\n"
+"\n"
+msgstr "📃List of current Admins:"
+
+#: ../anketa.py:422
+#: ../anketa.py:426
+#: ../anketa.py:489
+#: ../anketa.py:493
+msgid "По вопросам"
+msgstr "By questions"
+
+#: ../anketa.py:423
+#: ../anketa.py:440
+#: ../anketa.py:490
+#: ../anketa.py:507
+msgid "По пользователям"
+msgstr "By users"
+
+#: ../anketa.py:545
+msgid ""
+"🚷На данный момент нет информаци для отчета.\n"
+"Еще никто не прошел опрос."
+msgstr "🚷Now not info for report.Yet nobody answer."
+
+#: ../anketa.py:663
+msgid ""
+"📎 Загрузите файл с вопросами.\n"
+"\n"
+"MS Excel файл (xls,xlsx) заполненнный согласно шаблона\n"
+"\n"
+"♨️ Текущие вопросы и ответы будут удалены!"
+msgstr ""
+"📎 Load qusetion file.MS Excel файл (xls,xlsx) edited by template♨️ Current "
+"questions and answers will be deleted!"
+
+#: ../anketa.py:677
+msgid "⚠️Неверные данные, проверьте файл с вопросами!"
+msgstr "⚠️Wrong data. Check question file!"
+
+#: ../anketa.py:690
+msgid "Данные загружены в бот."
+msgstr "Data loaded to Bot."
+
+#: ../anketa.py:781
+msgid "🧐 Текущие вопросы:"
+msgstr "🧐 Current questions:"
+
+#: ../anketa.py:828
+msgid "📈 Показать статистику"
+msgstr "📈 Show stats"
+
+#: ../anketa.py:831
+msgid "📃 Пройти анкетирование"
+msgstr "📃 Run survey"
+
+#: ../anketa.py:834
+msgid "📊 Получить результаты"
+msgstr "📊 Get results"
+
+#: ../anketa.py:837
+msgid "📑 Текущие вопросы"
+msgstr "📑 Current questions"
+
+#: ../anketa.py:840
+msgid "⬆️ Загрузить новые вопросы"
+msgstr "⬆️ Load new questions"
+
+#: ../anketa.py:844
+msgid "📰 Работа с файлами"
+msgstr "📰 Works withs files"
+
+#: ../anketa.py:848
+msgid "👮‍♂️ Добавть администратора"
+msgstr "👮‍♂️ Add Admin"
+
+#: ../anketa.py:852
+msgid "🙅‍♂️ Удалить администратора"
+msgstr "🙅‍♂️Delete admin"
+
+#: ../anketa.py:856
+msgid "🕵️ Просмотреть всех админов"
+msgstr "🕵️ List all admins"
+
+#: ../anketa.py:862
+msgid "**☣ Режим Администратора:**"
+msgstr "**☣Admin mode:**"
+
+#: ../anketa.py:875
+msgid ""
+"🚷На данный момент нет информаци.\n"
+"Еще никто не прошел опрос."
+msgstr "🚷Now not info.Yet nobody answer."
+
+#: ../anketa.py:953
+msgid "🖼 Показать файлы изображений"
+msgstr "🖼 Show images files"
+
+#: ../anketa.py:956
+msgid "⬆️ Загрузить файлы изображений"
+msgstr "⬆️ Load image file"
+
+#: ../anketa.py:959
+msgid "🗑️ Удалить файлы изображений"
+msgstr "🗑️Delete image files"
+
+#: ../anketa.py:962
+msgid "📊 Показать файлы отчетов"
+msgstr "📊 Show report files"
+
+#: ../anketa.py:965
+msgid "🗑️ Удалить файлы отчетов"
+msgstr "🗑️ Delete report files"
+
+#: ../anketa.py:968
+msgid "⬇️ Получить файлы отчетов"
+msgstr "⬇️ Get report files"
+
+#: ../anketa.py:972
+msgid "📋 Показать файлы вопросов"
+msgstr "📋 Show questions files"
+
+#: ../anketa.py:976
+msgid "🗑️ Удалить файлы вопросов"
+msgstr "🗑️ Delete questions files"
+
+#: ../anketa.py:980
+msgid "⬇️ Получить файлы вопросов"
+msgstr "⬇️ Get questions files"
+
+#: ../anketa.py:984
+msgid "⬅️ Назад"
+msgstr "⬅️ Back"
+
+#: ../anketa.py:991
+msgid "**☣ Режим Администратора - файлы:**"
+msgstr "**☣ Admin mode - files:**"
+
+#: ../anketa.py:1009
+#: ../anketa.py:1028
+#: ../anketa.py:1048
+msgid "Нет файлов"
+msgstr "No files"
+
+#: ../anketa.py:1023
+#: ../anketa.py:1042
+msgid "Готово"
+msgstr "Done"
+
+#: ../anketa.py:1026
+msgid "Файлы удалены."
+msgstr "Files deleted"
+
+#: ../anketa.py:1080
+msgid ""
+"📎 Загрузите файл с изображнием.\n"
+"\n"
+"Поддержиаются следующие типы файлов:\n"
+"jpeg, jpg, gif, png, webp размером не более 5МБ"
+msgstr ""
+"📎 Load image file.Support file types: jpeg, jpg, gif, png, webp size no "
+"more 5MB"
+
+#: ../anketa.py:1099
+msgid "⚠️Тип файла не определен, попробуйте другой файл!"
+msgstr "⚠️Unknown file type, try other file!"
+
+#: ../anketa.py:1103
+msgid "⚠️ Данный тип файла не поддерживается, попробуйте другой файл!"
+msgstr "⚠️ This file type not supported, try other file!"
+
+#: ../anketa.py:1107
+msgid "⚠️Данный тип файла не поддерживается, попробуйте другой файл!"
+msgstr "⚠️ This file type not supported, try other file!"
+
+#: ../anketa.py:1139
+#: ../anketa.py:1215
+#: ../anketa.py:1332
+msgid ""
+"Результаты не будут сохранены.\n"
+"Пожалуйста пройдите опрос заново.\n"
+"Для этого  в ≡Меню выберете Старт\n"
+msgstr "Results not be saved.Please run survey yet.For this in ≡Menu Select Start"
+
+#: ../anketa.py:1327
+#: ../anketa.py:1496
+msgid "Ответить"
+msgstr "Answer"
+
+#: ../anketa.py:1428
+msgid "Да"
+msgstr "Yes"
+
+#: ../anketa.py:1428
+msgid "Нет"
+msgstr "No"
+
+#: ../anketa.py:1429
+msgid ""
+"⚠️Вы уже отвечали на вопросы.\n"
+"Желаете пройти опрос снова?\n"
+"♨️Предыдущие ответы будут потеряны.\n"
+msgstr ""
+"⚠️ You already answer for all question.Would like again?♨️Previous result "
+"wil be deleted."
+
+#: ../anketa.py:1437
+msgid ""
+"До свидания.\n"
+"\n"
+msgstr "Goodbuy."
+
+#: ../anketa.py:1558
+msgid "📊 Ваш отчет"
+msgstr "📊 Your report"
+
+#: ../anketa.py:1660
+msgid "Список текущих изображений:\n"
+msgstr "List current imge files:"
+
+#: ../anketa.py:1668
+#: ../anketa.py:1674
+#: ../anketa.py:1683
+msgid "Выберете файлы для удаления:"
+msgstr "Select files for deletion:"
+
+#: ../anketa.py:1671
+msgid "Список текущих отчетов:\n"
+msgstr "List current reports:"
+
+#: ../anketa.py:1677
+#: ../anketa.py:1686
+msgid "Выберете файлы для получения:"
+msgstr "Select file for download:"
+
+#: ../anketa.py:1680
+msgid "Список файлов с вопросами:\n"
+msgstr "List question files:"
+
+#~ msgid "Film"
+#~ msgstr ""
+
+#~ msgid "from"
+#~ msgstr ""
+
+#~ msgid "😔 No records"
+#~ msgstr ""
+
+#~ msgid "Add Film"
+#~ msgstr ""
+
+#~ msgid "Control"
+#~ msgstr ""
+
+#~ msgid "◀️"
+#~ msgstr ""
+
+#~ msgid "⏹️"
+#~ msgstr ""
+
+#~ msgid "▶️"
+#~ msgstr ""
+
+#~ msgid "ADD to you list"
+#~ msgstr ""
+
+#~ msgid "Clear "
+#~ msgstr ""
+
+#~ msgid " records"
+#~ msgstr ""
+
+#~ msgid "No records"
+#~ msgstr ""
+
+#~ msgid "All records: "
+#~ msgstr ""
+
+#~ msgid ""
+#~ "\n"
+#~ "Tagged records: "
+#~ msgstr ""
+
+#~ msgid ""
+#~ "\n"
+#~ "Early tagged: "
+#~ msgstr ""
+
+#~ msgid "List Films tagged"
+#~ msgstr ""
+
+#~ msgid "Shared Lists"
+#~ msgstr ""
+
+#~ msgid "List Films tagged early"
+#~ msgstr ""
+
+#~ msgid "Clear all tagged Films"
+#~ msgstr ""
+
+#~ msgid "Get database info "
+#~ msgstr ""
+
+#~ msgid "Search Films in database "
+#~ msgstr ""
+
+#~ msgid "List All Films in DB"
+#~ msgstr ""
+
+#~ msgid "Go to control users menu"
+#~ msgstr ""
+
+#~ msgid "**☣ Work with database:**"
+#~ msgstr ""
+
+#~ msgid "List user requests"
+#~ msgstr ""
+
+#~ msgid "List all users"
+#~ msgstr ""
+
+#~ msgid "Block/Unblock user"
+#~ msgstr ""
+
+#~ msgid "Change rights user"
+#~ msgstr ""
+
+#~ msgid "Delete user"
+#~ msgstr ""
+
+#~ msgid "Back to basic menu"
+#~ msgstr ""
+
+#~ msgid "**☣ Work with users:**"
+#~ msgstr ""
+
+#~ msgid "Set Read only"
+#~ msgstr ""
+
+#~ msgid "Set Read Write"
+#~ msgstr ""
+
+#~ msgid "Back to users menu"
+#~ msgstr ""
+
+#~ msgid "**☣     Select rights:    **"
+#~ msgstr ""
+
+#~ msgid "View users lists"
+#~ msgstr ""
+
+#~ msgid "List Share"
+#~ msgstr ""
+
+#~ msgid "Remove Share"
+#~ msgstr ""
+
+#~ msgid "Add Share"
+#~ msgstr ""
+
+#~ msgid "Back to basic menu "
+#~ msgstr ""
+
+#~ msgid "**☣ Shared lists:**"
+#~ msgstr ""
+
+#~ msgid "Select user for view list:"
+#~ msgstr ""
+
+#~ msgid "Nobody shared with you 😔"
+#~ msgstr ""
+
+#~ msgid "👥  Select Users"
+#~ msgstr ""
+
+#~ msgid "Click on the "
+#~ msgstr ""
+
+#~ msgid "'Select Users' "
+#~ msgstr ""
+
+#~ msgid "button to share your movie list"
+#~ msgstr ""
+
+#~ msgid "🏁............Done............🏁"
+#~ msgstr ""
+
+#~ msgid "🏁........Unsucessful.........🏁"
+#~ msgstr ""
+
+#~ msgid "Select user to remove share:"
+#~ msgstr ""
+
+#~ msgid ".....No records....."
+#~ msgstr ""
+
+#~ msgid "List awaiting users:"
+#~ msgstr ""
+
+#~ msgid "Film switch to active list"
+#~ msgstr ""
+
+#~ msgid "Film already in you list!"
+#~ msgstr ""
+
+#~ msgid "Film added to you list"
+#~ msgstr ""
+
+#~ msgid "Yoy already power user!"
+#~ msgstr ""
+
+#~ msgid "You request send to Admins, and will be reviewed soon."
+#~ msgstr ""
+
+#~ msgid "New user **"
+#~ msgstr ""
+
+#~ msgid "** request approve."
+#~ msgstr ""
