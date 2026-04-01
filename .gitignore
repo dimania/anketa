@@ -13,5 +13,6 @@ __pycache__/*
 reports/*
 !reports/.gitkeep
 questionfiles/*
+!questionfiles/Template_Survey.xlsx
 !questionfiles/.gitkeep
 

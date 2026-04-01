@@ -18,3 +18,4 @@ python-docx
 openpyxl
 xlrd
 fpdf2
+gettext
