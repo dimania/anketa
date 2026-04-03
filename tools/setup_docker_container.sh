@@ -19,7 +19,7 @@ cp ${SRC}/config.py $temp_dir
 cp ${SRC}/README.MD $temp_dir
 cp ${SRC}/LICENSE $temp_dir
 cp ${SRC}/requirements.txt $temp_dir
-#cp -R ${SRC}/locales $temp_dir
+cp -R ${SRC}/locales $temp_dir
 #cp -R ${SRC}/reports $temp_dir
 cp -R ${SRC}/questionfiles $temp_dir
 cp -R ${SRC}/font $temp_dir
