@@ -5,14 +5,15 @@
  and constants, get global configs from file config.py
 '''
 #
-#!!!!!!!! Replace with you config file here !!!!!!!
-# replace myconfig with config by example
+# Local deployments may provide myconfig.py; containers use the safe template
+# config.py and receive secrets through environment variables.
 
 import os
 
-#------------------------
-import myconfig as cfg
-#------------------------
+try:
+    import myconfig as cfg
+except ModuleNotFoundError:
+    import config as cfg
 
 #-----------------
 # CONSTANTS
@@ -63,9 +64,13 @@ type_questions = None
 all_questions = None
 Admins = {}
 Builtin_admin = None
+Admin_ids = set()
 report_logo = None
 report_title = None
 timeout_warning = True
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+MAX_EXCEL_ROWS = 1000
+MAX_EXCEL_COLUMNS = 100
 
 
 def get_config(config=cfg):
@@ -90,6 +95,7 @@ def get_config(config=cfg):
     global type_questions
     global Admins
     global Builtin_admin
+    global Admin_ids
     global report_logo
     global report_title
     global def_report_logo
@@ -102,13 +108,19 @@ def get_config(config=cfg):
     connection = None
 
     try:
-        system_version = config.system_version
-        bot_name = config.bot_name
-        db_name = config.db_name
-        logfile = config.logfile
+        # Environment variables always have precedence over the config module.
+        def setting(name, default=None):
+            value = os.environ.get(name)
+            return value if value not in (None, "") else getattr(config, name, default)
+
+        system_version = setting("SYSTEM_VERSION", config.system_version)
+        bot_name = setting("BOT_NAME", config.bot_name)
+        db_name = setting("DB_NAME", config.db_name)
+        logfile = setting("LOGFILE", config.logfile)
         use_proxy = config.use_proxy
-        log_level = config.log_level
-        Builtin_admin = config.Builtin_admin
+        log_level = setting("LOG_LEVEL", config.log_level)
+        Builtin_admin = getattr(config, "Builtin_admin", None)
+        configured_admin_ids = getattr(config, "ADMIN_IDS", set())
         report_logo = config.report_logo
         report_title = config.report_title
         def_report_logo = config.report_logo
@@ -119,24 +131,28 @@ def get_config(config=cfg):
         if 'timeout_for_answer' in vars(config):
             TIMEOUT_FOR_ANSWER = config.timeout_for_answer
 
-        # May be comment out in config.py
-        if 'API_ID' in vars(config):
-            api_id = config.API_ID
-        else: api_id = os.environ.get("API_ID", None)
+        raw_api_id = setting("API_ID")
+        api_id = int(raw_api_id) if raw_api_id not in (None, "") else None
+        api_hash = setting("API_HASH")
+        mybot_token = setting("BOT_TOKEN")
+        ses_bot_str = setting("SESSION_STRING_BOT")
+        session_bot = setting("SESSION_BOT", getattr(config, "session_bot", None))
 
-        if 'API_HASH' in vars(config):
-            api_hash = config.API_HASH
-        else: api_hash = os.environ.get("API_HASH", None)
+        raw_admin_ids = os.environ.get("ADMIN_IDS")
+        if raw_admin_ids:
+            configured_admin_ids = raw_admin_ids.split(",")
+        Admin_ids = {int(value) for value in configured_admin_ids if str(value).strip()}
 
-        if 'BOT_TOKEN' in vars(config):
-            mybot_token = config.BOT_TOKEN
-        else: mybot_token = os.environ.get("BOT_TOKEN", None)
+        if not Admin_ids:
+            raise ValueError("ADMIN_IDS must be configured; username authorization is disabled")
 
-        if 'SESSION_STRING_BOT' in vars(config):
-            ses_bot_str = config.SESSION_STRING_BOT 
-        else: ses_bot_str = os.environ.get("SESSION_STRING_BOT", None)
-
-        if not ses_bot_str: session_bot = config.session_bot 
+        # Upload limits are intentionally conservative and can be overridden by env.
+        max_upload = setting("MAX_UPLOAD_BYTES", "5242880")
+        max_excel_rows = setting("MAX_EXCEL_ROWS", "1000")
+        max_excel_columns = setting("MAX_EXCEL_COLUMNS", "100")
+        globals()["MAX_UPLOAD_BYTES"] = int(max_upload)
+        globals()["MAX_EXCEL_ROWS"] = int(max_excel_rows)
+        globals()["MAX_EXCEL_COLUMNS"] = int(max_excel_columns)
     
         if use_proxy:
             proxies = config.proxies
@@ -146,5 +162,3 @@ def get_config(config=cfg):
     except Exception as error:
         print(f"Error in config file: {error}")
         exit(-1)
-
-

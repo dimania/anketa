@@ -10,14 +10,17 @@ from collections import defaultdict
 import re
 import logging
 import asyncio
-import os.path
+import os
+from pathlib import Path
 import sys
 import gettext
 import json
+from html import escape
+from uuid import uuid4
 from datetime import datetime
 import requests
 from telethon import TelegramClient, events
-from telethon.tl.types import  PeerChannel, PeerUser, UpdateNewMessage
+from telethon.tl.types import UpdateNewMessage
 from telethon.tl.custom import Button
 from telethon import errors
 from telethon.events import StopPropagation
@@ -36,24 +39,60 @@ import dbmodule as dbm
 bot = None
 _ = None
 
+BASE_DIR = Path(__file__).resolve().parent
+IMAGE_DIR = BASE_DIR / "images"
+QUESTION_DIR = BASE_DIR / "questionfiles"
+REPORT_DIR = BASE_DIR / "reports"
+os.umask(0o077)
+
+
+def safe_path(directory, name, *, allow_symlink=False):
+    """Return a path confined to directory, rejecting traversal and symlinks."""
+    root = Path(directory).resolve()
+    candidate = (root / str(name)).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as error:
+        raise ValueError("path escapes storage directory") from error
+    if not allow_symlink and (root / str(name)).is_symlink():
+        raise ValueError("symlinks are not allowed")
+    return candidate
+
+
+def excel_safe(value):
+    """Prevent spreadsheet formula injection from user-controlled strings."""
+    if isinstance(value, str) and value.startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
+def safe_excel_writer(filename):
+    return pd.ExcelWriter(
+        filename,
+        engine="xlsxwriter",
+        engine_kwargs={"options": {"strings_to_formulas": False, "strings_to_urls": False}},
+    )
+
+
+def safe_dataframe(df):
+    """Apply cell escaping without relying on removed pandas APIs."""
+    return df.apply(lambda column: column.map(excel_safe))
+
 async def exist_file(path_to_file):
     '''
-    Test for exist file or url
+    Test for an image stored locally by the application.
 
     param path_to_file: url or file for test
     '''
-    if os.path.isfile('images/'+path_to_file):
-        return 'images/'+path_to_file
-    
-    try:
-        # Use HEAD request to check for existence without downloading content
-        response = requests.head(path_to_file, timeout=5)
-        # 200-299 status codes indicate success
-        if 200 <= response.status_code <= 300:
-            return path_to_file
-    except:
-        # Error get url
+    if not isinstance(path_to_file, str) or not path_to_file:
         return False
+    if Path(path_to_file).name != path_to_file:
+        return False
+    try:
+        path = safe_path(IMAGE_DIR, path_to_file)
+    except ValueError:
+        return False
+    return str(path) if path.is_file() else False
     
 class PDF(FPDF):
     
@@ -64,7 +103,8 @@ class PDF(FPDF):
 
     def header(self):
         # Logo
-        self.image('images/'+sts.report_logo, 5, 2, 20)
+        logo = safe_path(IMAGE_DIR, sts.report_logo)
+        self.image(str(logo), 5, 2, 20)
         # Arial bold 15
         self.add_font('DejaVu-Bold', '', r'font/DejaVuSansCondensed-Bold.ttf')
         self.add_font('DejaVu', '', r'font/DejaVuSansCondensed.ttf')
@@ -172,16 +212,18 @@ async def add_admins(event):
     url = f"https://api.telegram.org/bot{sts.mybot_token}/sendMessage"
 
     response = requests.post(url, data=payload, timeout = 30, proxies=sts.proxies)
-    logging.debug(f"Rеsponse Select user button post:{response}\n")
+    logging.debug("Telegram admin-selection keyboard sent: %s", response.status_code)
 
     # hanled answer
     @bot.on(events.Raw(types=UpdateNewMessage))
     async def on_requested_peer_user(event_select):
-        logging.debug(f"Get select user event:{event_select}")
         text_reply=''
         new_admins={}
 
         try:
+            peer_id = getattr(getattr(event_select.message, "peer_id", None), "user_id", None)
+            if peer_id != id_user:
+                return
             if event_select.message.action.peers[0].__class__.__name__ == "RequestedPeerUser":
                 button_id = event_select.message.action.button_id
                 if button_id == 1:
@@ -194,7 +236,7 @@ async def add_admins(event):
 
                     bot.remove_event_handler(on_requested_peer_user)
                     if new_admins:
-                        logging.debug(f"Get selected users:{new_admins}")
+                        logging.info("Adding %d administrator(s)", len(new_admins))
                         # Add new admins in DB
                         async with dbm.DatabaseBot(sts.db_name) as db:
                             ret = await db.db_add_admins(new_admins)
@@ -214,12 +256,12 @@ async def add_admins(event):
                     "reply_markup": json.dumps(reply_markup)
                     }
                     response = requests.post(url, data=payload_remove_kb, timeout = 30, proxies=sts.proxies)
-                    logging.debug(f"Rsponse Remove keyboard:{response}\n")
+                    logging.debug("Telegram admin-selection keyboard removed: %s", response.status_code)
                     await create_admin_menu(0, event) 
                     
                     return 
-        except Exception as error :
-            logging.debug(f"It is not RequestedPeerUser message:{error}")
+        except Exception:
+            logging.debug("Ignored non-admin-selection update", exc_info=True)
             return None
 
 async def del_admins(event):
@@ -232,17 +274,17 @@ async def del_admins(event):
     logging.debug("Call del_admins() function")
     bdata_id='DEL_ADMIN_'
     button=[]
-    i=0
     admin_name=''
     admin_nickname=''
-    logging.debug(f"Len Admins: {len(sts.Admins)}")
-   
-    if len(sts.Admins) > 1:
+    deletable = {
+        admin_id: cur_admin for admin_id, cur_admin in sts.Admins.items()
+        if admin_id not in sts.Admin_ids
+    }
+    logging.debug("Deletable administrators: %d", len(deletable))
+
+    if deletable:
         message=_("❌ Выберете админа для удаления:")
-        for admin_id, cur_admin in sts.Admins.items():
-            if i == 0: 
-                i=i+1
-                continue
+        for admin_id, cur_admin in deletable.items():
             bdata=bdata_id+str(admin_id)
             if cur_admin[1]:
                 admin_name = cur_admin[1]
@@ -330,7 +372,12 @@ async def get_excel_data(fname, sheet_name=0):
     return dict of data.
     """
     try:
-        df = pd.read_excel(fname, sheet_name=sheet_name, header=None )
+        df = pd.read_excel(
+            fname,
+            sheet_name=sheet_name,
+            header=None,
+            nrows=sts.MAX_EXCEL_ROWS + 1,
+        )
         # Convert the DataFrame to dict
         res=df.to_dict(orient='split', index=False) 
         return res
@@ -377,7 +424,6 @@ async def gen_excel(filename):
         sort_order_qst.append(key_q)
         data['question'].append(key_q)        
         answer_cur=dict(row).get('answer_user')
-        logging.debug(f"Results gen excel: answer_cur:{answer_cur} all_questions.get(key_q):{all_questions.get(key_q)}")
         if all_questions.get(key_q):
             list_answer=[]
             for variant in answer_cur.split(','): #FIXME HERE
@@ -402,10 +448,10 @@ async def gen_excel(filename):
             data_ws2['time'].append(time)
         else:
             continue
-    logging.debug(f"Results gen excel: {data}")
     df = pd.DataFrame(data)
-    logging.debug(f"Results gen excel: ws2: {data_ws2}")
     df1 = pd.DataFrame(data_ws2)
+    df = safe_dataframe(df)
+    df1 = safe_dataframe(df1)
 
     # Order the columns 
     df = df[["name_user", "nick_user", "question", "answer_user", "date", "time" ]]
@@ -415,7 +461,7 @@ async def gen_excel(filename):
     df1 = df1[sort_list_ws2]
 
     # Create a Pandas Excel writer using XlsxWriter as the engine.
-    writer = pd.ExcelWriter(filename, engine="xlsxwriter")
+    writer = safe_excel_writer(filename)
 
     # Write the dataframe data to XlsxWriter. Turn off the default header and
     # index and skip one row to allow us to insert a user defined header.
@@ -429,7 +475,7 @@ async def gen_excel(filename):
     (max_row, max_col) = df1.shape
 
     # Create a list of column headers, to use in add_table().
-    column_settings = [{"header": column} for column in df1.columns]
+    column_settings = [{"header": excel_safe(str(column))} for column in df1.columns]
 
     # Add the Excel table structure. Pandas will add the data.
     worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
@@ -443,7 +489,7 @@ async def gen_excel(filename):
     (max_row, max_col) = df.shape
 
     # Create a list of column headers, to use in add_table().
-    column_settings = [{"header": column} for column in df.columns]
+    column_settings = [{"header": excel_safe(str(column))} for column in df.columns]
 
     # Add the Excel table structure. Pandas will add the data.
     worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
@@ -473,6 +519,8 @@ async def new_gen_excel(filename):
     df = pd.DataFrame(data)
     #logging.info(f"Results gen excel: ws2: {data_ws2}")
     df1 = pd.DataFrame(data_ws2)
+    df = safe_dataframe(df)
+    df1 = safe_dataframe(df1)
 
     # Order the columns if necessary.
     #df = df[["name_user", "nick_user", "question", "answer_user", "date", "time" ]]
@@ -482,7 +530,7 @@ async def new_gen_excel(filename):
     #df1 = df1[["date", "time", "name_user", "nick_user", ]] # "question", "answer_user", 
 
     # Create a Pandas Excel writer using XlsxWriter as the engine.
-    writer = pd.ExcelWriter(filename, engine="xlsxwriter")
+    writer = safe_excel_writer(filename)
 
     # Write the dataframe data to XlsxWriter. Turn off the default header and
     # index and skip one row to allow us to insert a user defined header.
@@ -496,7 +544,7 @@ async def new_gen_excel(filename):
     (max_row, max_col) = df1.shape
 
     # Create a list of column headers, to use in add_table().
-    column_settings = [{"header": column} for column in df1.columns]
+    column_settings = [{"header": excel_safe(str(column))} for column in df1.columns]
 
     # Add the Excel table structure. Pandas will add the data.
     worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
@@ -510,7 +558,7 @@ async def new_gen_excel(filename):
     (max_row, max_col) = df.shape
 
     # Create a list of column headers, to use in add_table().
-    column_settings = [{"header": column} for column in df.columns]
+    column_settings = [{"header": excel_safe(str(column))} for column in df.columns]
 
     # Add the Excel table structure. Pandas will add the data.
     worksheet.add_table(0, 0, max_row, max_col - 1, {"columns": column_settings})
@@ -533,17 +581,19 @@ async def send_excel_report(event):
 
     dt = datetime.now().strftime('%d%m%Y_%H%M%S')
     
-    fname = f"reports/report_{dt}.xlsx"
+    fname = str(REPORT_DIR / f"report_{dt}.xlsx")
     logging.debug(f"Gen filename: {fname}")
-    res = await gen_excel(fname)
-    if res:
-        message="📊 Ваш отчет"
-        await bot.send_file( event.query.user_id, fname, caption=message, parse_mode="html" ) 
-        await asyncio.sleep(3) # Delay for user after send report and show menu
-        return True
-    else:
+    try:
+        res = await gen_excel(fname)
+        if res:
+            message="📊 Ваш отчет"
+            await bot.send_file(event.query.user_id, fname, caption=message, parse_mode="html")
+            await asyncio.sleep(3)
+            return True
         await event.respond(_("🚷На данный момент нет информаци для отчета.\nЕще никто не прошел опрос."))
         return False
+    finally:
+        Path(fname).unlink(missing_ok=True)
     
 async def set_dataframe_sheet1(rows):
     '''
@@ -566,7 +616,6 @@ async def set_dataframe_sheet1(rows):
         if all_questions.get(key_q):
             i=False
             for variant in answer_cur.split(','): #FIXME HERE
-                logging.info(f"DF1 VARIANT:\nvariant({i})={variant}")
                 data['answer_user'].append(all_questions.get(key_q)[int(variant)-1])
                 if i:
                     data['name_user'].append('')
@@ -584,7 +633,7 @@ async def set_dataframe_sheet1(rows):
         time = dt.strftime('%H:%M')
         data['date'].append(date)
         data['time'].append(time)
-    logging.info(f"DF1 Results gen excel:\ndata:{data}")
+    logging.debug("Prepared detailed Excel sheet")
 
     return data
 
@@ -602,7 +651,6 @@ async def set_dataframe_sheet2(rows):
     # Get name_user, nick_user, question, answer_user, date
     for row in rows:
         len_row = len(row)
-        logging.info(f"DF2 LEN:\nlen={len_row}")
         if dict(row).get('name_user') not in data['name_user']:
             data['name_user'].append(dict(row).get('name_user'))       
             data['nick_user'].append(dict(row).get('nick_user'))
@@ -613,7 +661,6 @@ async def set_dataframe_sheet2(rows):
             data['date'].append(date)
             data['time'].append(time)
             global_row = global_row + variant_row
-            logging.info(f"DF2 VARIANT:\nGlobal_row={global_row} Question={key_q} variant({i})={variant}")
         
         index=int(dict(row).get('question_id'))
         #data['question'].append(all_questions[index-1])
@@ -625,7 +672,6 @@ async def set_dataframe_sheet2(rows):
             i=False
             #variant_row = variant_row + 1 
             for variant in answer_cur.split(','): #FIXME HERE
-                logging.info(f"DF2 VARIANT:\nGlobal_row={global_row} Question={key_q} variant({i})={variant}")
                 data[key_q].insert(global_row,all_questions.get(key_q)[int(variant)-1])
                 if i:
                     data['name_user'].append(' ')       
@@ -645,10 +691,9 @@ async def set_dataframe_sheet2(rows):
         else: 
             #data[key_q].append(answer_cur)
             data[key_q].insert(global_row,answer_cur)
-            logging.info(f"\nDF2 global_row:{global_row}")
 
         
-    logging.info(f"DF2 Results gen excel:\ndata:{data}")
+    logging.debug("Prepared aggregated Excel sheet")
     return data
 
 async def get_qusetion_data(event_bot):
@@ -664,34 +709,45 @@ async def get_qusetion_data(event_bot):
     "MS Excel файл (xls,xlsx) заполненнный согласно шаблона\n"
     "\n♨️ Текущие вопросы и ответы будут удалены!"))
 
-    @bot.on(events.NewMessage())
-    async def bot_handler_f_bot(event):
-        #logging.debug(f"Get NewMessage event_bot: {event}")      
-        if event.message.document:
-            download_path = await event.message.download_media(file="questionfiles/") 
-            logging.info(f'File with questions saved to: {download_path}')                                   
-            #with open(download_path, 'r', encoding="utf-8") as file:
-            #    new_questions = [line.strip() for line in file.readlines()]
-            new_type_questions, new_questions, warnings = await get_new_questions(download_path)
-            if not new_questions:
-                await event_bot.respond(_("⚠️Неверные данные, проверьте файл с вопросами!"))
-                bot.remove_event_handler(bot_handler_f_bot)
-                await create_admin_menu(0, event_bot)
-                return False
-            all_questions.clear()
-            type_questions.clear()   
-            all_questions.update(new_questions)
-            type_questions.update(new_type_questions)
-            logging.debug(f'New all_questions: {all_questions}')
-            logging.debug(f'New type_questions: {type_questions}')
-            async with dbm.DatabaseBot(sts.db_name) as db:
-                await db.db_rewrite_new_questions(all_questions,type_questions)
+    admin_id = event_bot.query.user_id
 
-            await event.respond(_("Данные загружены в бот."))
-            if warnings:
-                await event.respond(warnings)
-            bot.remove_event_handler(bot_handler_f_bot)
-            await create_admin_menu(0, event_bot)
+    @bot.on(events.NewMessage(from_users=admin_id))
+    async def bot_handler_f_bot(event):
+        if event.sender_id != admin_id:
+            return
+        if event.message.document:
+            download_path = None
+            try:
+                file_size = getattr(event.message.file, "size", None)
+                if file_size and file_size > sts.MAX_UPLOAD_BYTES:
+                    await event.respond(_("⚠️Файл слишком большой."))
+                    return
+                download_path = QUESTION_DIR / f"upload-{uuid4().hex}"
+                downloaded = await event.message.download_media(file=str(download_path))
+                if not downloaded or Path(downloaded).stat().st_size > sts.MAX_UPLOAD_BYTES:
+                    await event.respond(_("⚠️Файл слишком большой."))
+                    return
+                new_type_questions, new_questions, warnings = await get_new_questions(downloaded)
+                if not new_questions:
+                    await event_bot.respond(_("⚠️Неверные данные, проверьте файл с вопросами!"))
+                    return
+                async with dbm.DatabaseBot(sts.db_name) as db:
+                    await db.db_rewrite_new_questions(new_questions, new_type_questions)
+                all_questions.clear()
+                type_questions.clear()
+                all_questions.update(new_questions)
+                type_questions.update(new_type_questions)
+                await event.respond(_("Данные загружены в бот."))
+                if warnings:
+                    await event.respond(warnings)
+                await create_admin_menu(0, event_bot)
+            except Exception:
+                logging.exception("Question file processing failed")
+                await event.respond(_("⚠️Не удалось обработать файл."))
+            finally:
+                if download_path:
+                    Path(download_path).unlink(missing_ok=True)
+                bot.remove_event_handler(bot_handler_f_bot)
 
 async def get_new_questions(fname):
     '''
@@ -702,6 +758,11 @@ async def get_new_questions(fname):
     return tlist,qlist,warnings  tlist - type of filed, qlist - text question, warnings - Warning for user if image file not exist
     '''
     #root,ext = os.path.splitext(fname)
+    try:
+        if Path(fname).stat().st_size > sts.MAX_UPLOAD_BYTES:
+            return False, False, False
+    except OSError:
+        return False, False, False
     kind = filetype.guess(fname)
     
     #logging.debug(f'File extension: {kind.extension}')
@@ -712,10 +773,15 @@ async def get_new_questions(fname):
         return False,False,False
     elif kind.extension == 'xlsx' or kind.extension == 'xls':
         text_content = await get_excel_data(fname)
-        logging.debug(f'Xlsx or xls content is:{text_content}')
+    else:
+        return False, False, False
     
     if not text_content:
         return False,False,False
+    if len(text_content.get('data', [])) > sts.MAX_EXCEL_ROWS:
+        return False, False, False
+    if any(len(row) > sts.MAX_EXCEL_COLUMNS for row in text_content.get('data', [])):
+        return False, False, False
     
     qlist={}
     tlist={}
@@ -726,18 +792,20 @@ async def get_new_questions(fname):
     sts.report_title = sts.def_report_title
     for item in text_content['data']:
         #item - one question and variants answers if exist
+        if not item:
+            return False, False, False
         type_current_qusetion=item.pop(0)
-        logging.debug(f'if {type_current_qusetion} not in {sts.TYPES_OF_QUESTONS}')
         if type_current_qusetion not in sts.TYPES_OF_QUESTONS:
             #raise ValueError("Type of question invald!")
             return False,False,False             
-        logging.debug(f'Item content is:{item}')
+        if not item or not isinstance(item[0], str) or len(item[0]) > 4096:
+            return False, False, False
+        if any(isinstance(value, str) and len(value) > 4096 for value in item):
+            return False, False, False
         nan_list=pd.isna(item)
-        logging.debug(f'Item content is:{nan_list}')
         i=False
         # variants answer to list values dict        
         for x, y in zip(item,nan_list):
-            logging.debug(f'i_X_Y:{i},{x},{y}')
             if not y and i:
                 val.append(x) 
             i=True
@@ -751,7 +819,7 @@ async def get_new_questions(fname):
                 if type_current_qusetion == sts.TYPES_OF_QUESTONS[sts.REPORT]:
                     sts.report_title = item[0]
                     sts.report_logo = val[0]
-                    logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
+                    logging.debug("Set report logo from validated local file")
                     #continue
             else:
                 logging.warning(f"Warning file or url {val[0]} not exist")
@@ -767,7 +835,7 @@ async def get_new_questions(fname):
         qlist[item[0]]=val
         tlist[item[0]]=type_current_qusetion
         val=[]
-        logging.debug(f'\ntlist={tlist}\nqlist={qlist}\nwarnings={warnings}')
+        logging.debug("Validated questionnaire row %d", len(tlist))
     
     return tlist,qlist,warnings
 
@@ -782,18 +850,18 @@ async def show_qusetions(event_bot):
 
     for cur_question,type in type_questions.items():
         if type == sts.TYPES_OF_QUESTONS[sts.HEADER]: # header
-          message = message + f"\n{cur_question}\n"  
+              message = message + f"\n{escape(str(cur_question))}\n"
 
     for qst in all_questions:
         if type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SIMPLE] or \
            type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.ONLYONE] or \
            type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.SELECT]:
-            message = message + f"\n{i}. {qst}\n"
+            message = message + f"\n{i}. {escape(str(qst))}\n"
             i=i+1
         elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.TEXT]:
               #qst.replace('ID4T_[d]_', '')
               qst = re.sub(r"ID4T_\d+_", "", qst)
-              message = message + f"\n{qst}\n"
+              message = message + f"\n{escape(str(qst))}\n"
               continue
         elif type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
              type_questions.get(qst) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
@@ -806,11 +874,11 @@ async def show_qusetions(event_bot):
                 emoji='🔹'
             else:
                 emoji=''
-            message = message + f"  {emoji} {variant}\n"
+            message = message + f"  {emoji} {escape(str(variant))}\n"
 
     for cur_question,type in type_questions.items():
         if type == sts.TYPES_OF_QUESTONS[sts.FOOTER]: # footer
-          message = message + f"\n{cur_question}\n"  
+          message = message + f"\n{escape(str(cur_question))}\n"
     
     await event_bot.respond(message, parse_mode="html")
     await create_admin_menu(0, event_bot)
@@ -896,7 +964,7 @@ async def test_send_excel_report(event):# USE for test create report excel file
 
     dt = datetime.now().strftime('%d%m%Y_%H%M%S')
     
-    fname = f"reports/report_{dt}.xlsx"
+    fname = str(REPORT_DIR / f"report_{dt}.xlsx")
     logging.debug(f"Gen filename: {fname}")
     res = await gen_excel(fname)
     return True
@@ -916,7 +984,12 @@ async def list_files4selection(directory, exclude = None):
     for file in all_entries:
         if file in exclude:
             continue
-        fbut.append(file)
+        try:
+            path = safe_path(directory, file)
+        except ValueError:
+            continue
+        if path.is_file() and not path.is_symlink():
+            fbut.append(file)
 
     return fbut
 
@@ -929,14 +1002,13 @@ async def delete_files( directory, list_files ):
     param list_files: list files from deletion
     '''
     for file in list_files:
-        f=directory+os.path.basename(file)
         try:
-            # Check if the path points to a file before attempting removal
-            if os.path.isfile(f) or os.path.islink(f):
-                os.remove(f)
-                logging.debug(f"File removed: {f}")
-        except OSError as e:
-            logging.debug(f"Error removing {f}: {e}")
+            f = safe_path(directory, file)
+            if f.is_file() and not f.is_symlink():
+                f.unlink()
+                logging.info("Removed managed file %s", f.name)
+        except (OSError, ValueError) as e:
+            logging.warning("Error removing managed file: %s", e)
             return False
     return True
 
@@ -1042,8 +1114,13 @@ async def ui_get_files(event, directory, title, exclude = None):
         rep_list = await unv_select_conversation(id_user, event, title, _('Готово'), listf)
         if rep_list:
             for repf in rep_list:
-                await bot.send_file( id_user, directory+repf )
-                await asyncio.sleep(0,5)
+                try:
+                    path = safe_path(directory, repf)
+                except ValueError:
+                    continue
+                if path.is_file() and not path.is_symlink():
+                    await bot.send_file(id_user, str(path))
+                await asyncio.sleep(0.5)
     else:
         await event.respond(_('Нет файлов'))
 
@@ -1079,34 +1156,46 @@ async def get_image(event_bot):
         "jpeg, jpg, gif, png, webp размером не более 5МБ")
     await event_bot.respond(message)
 
-    @bot.on(events.NewMessage())
+    @bot.on(events.NewMessage(from_users=event_bot.query.user_id))
     async def bot_handler_f_bot(event):
-        logging.debug(f"WAIT image: get NewMessage event_bot: {event}")
+        if event.sender_id != event_bot.query.user_id:
+            return
         dl=False      
         if event.message.photo: 
             dl=True
         if event.message.document:
-            if 'image/' in event.message.document.mime_type:
+            if 'image/' in (event.message.document.mime_type or ''):
                 dl=True
-        if dl:
-            download_path = await event.message.download_media(file="images/") #FIXME neeed test if event.message.photo
-            logging.info(f'File with questions saved to: {download_path}')                                   
-            kind = filetype.guess(download_path)
-            if kind is None:
-                logging.debug(f'Cannot guess file type filename: {download_path}!')
-                message=_("⚠️Тип файла не определен, попробуйте другой файл!")
-                os.remove(download_path)                
-            elif kind.extension not in support_img:
-                os.remove(download_path)
-                message=_("⚠️ Данный тип файла не поддерживается, попробуйте другой файл!")
-            else:
-                message=_("Данные загружены в бот.\n Имя згруженного файла:") + f"{download_path}"                       
-        else:
-            message=_("⚠️Данный тип файла не поддерживается, попробуйте другой файл!")
-        
-        await event.respond(message)
-        bot.remove_event_handler(bot_handler_f_bot)
-        await create_menu_files(event_bot)    
+        download_path = None
+        try:
+            file_size = getattr(event.message.file, "size", None)
+            if file_size and file_size > sts.MAX_UPLOAD_BYTES:
+                await event.respond(_("⚠️Файл слишком большой."))
+                return
+            if not dl:
+                await event.respond(_("⚠️Данный тип файла не поддерживается, попробуйте другой файл!"))
+                return
+            download_path = IMAGE_DIR / f"upload-{uuid4().hex}"
+            downloaded = await event.message.download_media(file=str(download_path))
+            if not downloaded or Path(downloaded).stat().st_size > sts.MAX_UPLOAD_BYTES:
+                await event.respond(_("⚠️Файл слишком большой."))
+                return
+            kind = filetype.guess(downloaded)
+            if kind is None or kind.extension not in support_img:
+                await event.respond(_("⚠️Данный тип файла не поддерживается, попробуйте другой файл!"))
+                return
+            extension = kind.extension
+            final_path = IMAGE_DIR / f"{uuid4().hex}.{extension}"
+            Path(downloaded).replace(final_path)
+            await event.respond(_("Данные загружены в бот."))
+        except (OSError, ValueError):
+            logging.exception("Image upload failed")
+            await event.respond(_("⚠️Не удалось загрузить изображение."))
+        finally:
+            if download_path:
+                Path(download_path).unlink(missing_ok=True)
+            bot.remove_event_handler(bot_handler_f_bot)
+            await create_menu_files(event_bot)
         
 async def simple_conversation(id_user, event_bot, question_number, question_id, cur_question): #OLD NOT USE
     '''
@@ -1129,10 +1218,14 @@ async def simple_conversation(id_user, event_bot, question_number, question_id, 
             #WAIT ANSWER SIMLPE HERE
             response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
             resp_text = response.text
-            logging.info(f"Get respond text: {question_id} / {resp_text}")
+            if not resp_text or len(resp_text) > 4096:
+                await conv.send_message(_("⚠️Ответ должен содержать от 1 до 4096 символов."))
+                conv.cancel()
+                return False
+            logging.info("Received answer for user %s (%d chars)", id_user, len(resp_text))
             answers[question_id+1].append(resp_text)
         except TimeoutError as error:
-            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
+            logging.debug("Answer timeout for user %s after %s seconds", id_user, sts.TIMEOUT_FOR_ANSWER)
             message=_("⚠️Отведенное время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
@@ -1162,16 +1255,21 @@ async def unv_simple_conversation(id_user, event_bot, message):
             await conv.send_message(message)
             #WAIT ANSWER SIMLPE HERE
             response = await conv.get_response(timeout=sts.TIMEOUT_FOR_ANSWER)
-            logging.info(f"Get respond text: {response.text}")
+            answer = response.text or ""
+            if not answer or len(answer) > 4096:
+                await conv.send_message(_("⚠️Ответ должен содержать от 1 до 4096 символов."))
+                conv.cancel()
+                return False
+            logging.info("Received answer for user %s (%d chars)", id_user, len(answer))
         except TimeoutError as error:
-            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
+            logging.debug("Answer timeout for user %s after %s seconds", id_user, sts.TIMEOUT_FOR_ANSWER)
             message=_("⚠️Отведенное на ответ время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд истекло.")
             await conv.send_message(message)
             conv.cancel()        
             return False
         
         conv.cancel()
-        return response.text
+        return answer
 
 async def onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question): #OLD NOT USE
     '''
@@ -1207,10 +1305,10 @@ async def onlyone_conversation(id_user, event_bot, question_number, question_id,
             event_res = await handle 
             button_pressed = event_res.data.decode('utf-8')
             answ_v = button_pressed.replace('VARIANT_', '').split('_')
-            logging.info(f"Get respond button text:\n{question_id}\n{button_pressed}\n{answ_v}")
+            logging.debug("Received a valid single-choice selection for question %s", question_id)
             answers[question_id+1].append(answ_v[1])
         except TimeoutError as error:
-            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
+            logging.debug("Answer timeout for user %s after %s seconds", id_user, sts.TIMEOUT_FOR_ANSWER)
             message=_("⚠️Отведенное время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
@@ -1253,10 +1351,14 @@ async def unv_onlyone_conversation(id_user, event_bot, message, list_items):
             handle = conv.wait_event(my_press_event(sender_id),timeout=sts.TIMEOUT_FOR_ANSWER) #FIXME Need or not use pattern for get button?
             event_res = await handle 
             button_pressed = event_res.data.decode('utf-8')
-            answ_v = button_pressed.replace('VARIANT_', '')
-            logging.debug(f"Get respond button text: button_pressed={button_pressed}/answ_v={answ_v}")
+            if not button_pressed.startswith('VARIANT_'):
+                return False
+            answ_v = button_pressed.removeprefix('VARIANT_')
+            if answ_v not in list_items:
+                return False
+            logging.debug("Received a valid single-choice selection")
         except TimeoutError as error:
-            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
+            logging.debug("Answer timeout for user %s after %s seconds", id_user, sts.TIMEOUT_FOR_ANSWER)
             message=_("⚠️Отведенное на ответ время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд истекло.")
             await conv.send_message(message)
             conv.cancel()
@@ -1307,7 +1409,7 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
                     #TODO check for not null answers               
                     break
                 answ_v = button_pressed.replace('VARIANT_', '').split('_')
-                logging.info(f"Get respond button text: {question_id} : {button_pressed} : {answ_v}")
+                logging.debug("Received a valid multi-choice selection for question %s", question_id)
 
                 if answ_v[1] in answers[question_id+1]: # FIXME XZ!!!!! was answ_v[2]
                     answers[question_id+1].remove(answ_v[1])
@@ -1329,7 +1431,7 @@ async def select_conversation(id_user, event_bot, question_number, question_id, 
                 button.append([ Button.inline(_('Ответить'), bdata)])
                 await bot.edit_message(event_res.query.user_id, event_res.query.msg_id,str_qst, buttons=button)
         except TimeoutError as error:
-            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user} on answer {cur_question}\nOriginal error:{error}")
+            logging.debug("Answer timeout for user %s after %s seconds", id_user, sts.TIMEOUT_FOR_ANSWER)
             message=_("⚠️Отведенное время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд на ответ истекло.\n"\
                                     "Результаты не будут сохранены.\n"\
                                     "Пожалуйста пройдите опрос заново.\n"\
@@ -1382,8 +1484,12 @@ async def unv_select_conversation(id_user, event_bot, message, end_name_btn, lis
                 if button_pressed == 'ANSWER':           
                     break     
 
-                cur_sel_var = button_pressed.replace('VARIANT_','')                           
-                logging.debug(f"Get respond button text: button_pressed={button_pressed}/result={result}/cur_sel_var={cur_sel_var}")
+                if not button_pressed.startswith('VARIANT_'):
+                    continue
+                cur_sel_var = button_pressed.removeprefix('VARIANT_')
+                if cur_sel_var not in list_items:
+                    continue
+                logging.debug("Updated multi-choice selection")
                 
                 if cur_sel_var in result:
                     result.remove(cur_sel_var)
@@ -1403,7 +1509,7 @@ async def unv_select_conversation(id_user, event_bot, message, end_name_btn, lis
                 button.append([ Button.inline(end_name_btn, bdata)])
                 await bot.edit_message(event_res.query.user_id, event_res.query.msg_id, message, buttons=button)
         except TimeoutError as error:
-            logging.debug(f"Get timeout {sts.TIMEOUT_FOR_ANSWER} sec for user {id_user}\nOriginal error:{error}")
+            logging.debug("Answer timeout for user %s after %s seconds", id_user, sts.TIMEOUT_FOR_ANSWER)
             message=_("⚠️Отведенное на ответ время ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд истекло.")
             await conv.send_message(message)
             conv.cancel()
@@ -1424,27 +1530,35 @@ async def check_user_run_anketa(id_user, event_bot, menu):
     async with dbm.DatabaseBot(sts.db_name) as db:
         res = await db.db_exist_id_user(id_user)
     
-    logging.info(f"Exist_id_user: {res}")
+    logging.debug("Existing answer check for user %s: %s", id_user, bool(res))
 
     # if user already answer     
     if res:
-       #await event_bot.respond(f"Вы уже отвечали на вопросы.\n Желаете пройти опрос снова?\n Предыдущие ответы будут потяряны.\n")
-       keyboard = [ Button.inline(_("Да"), b"/yes"),Button.inline(_("Нет"), b"/no") ]
-       await event_bot.respond(_("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\n♨️Предыдущие ответы будут потеряны.\n"), parse_mode='md', buttons=keyboard)
-      
-       @bot.on(events.CallbackQuery())
-       async def callback_yn(event):            
+        keyboard = [Button.inline(_("Да"), b"/yes"), Button.inline(_("Нет"), b"/no")]
+        prompt = await event_bot.respond(
+            _("⚠️Вы уже отвечали на вопросы.\nЖелаете пройти опрос снова?\n♨️Предыдущие ответы будут потеряны.\n"),
+            parse_mode='md',
+            buttons=keyboard,
+        )
+        prompt_id = getattr(prompt, "id", None)
+
+        @bot.on(events.CallbackQuery())
+        async def callback_yn(event):
+            if event.sender_id != id_user:
+                return
+            if prompt_id is not None and event.message_id != prompt_id:
+                return
             button_data = event.data.decode()
-            logging.info(f"Callback yes/no: {button_data}")
-            #await event.delete()
+            if button_data not in ('/yes', '/no'):
+                return
+            logging.info("Existing-answer prompt handled for user %s", id_user)
             if button_data == '/no':
                 await event_bot.respond(_("До свидания.\n\n"))
-                bot.remove_event_handler(callback_yn)                
-            elif button_data == '/yes': 
+            else:
                 async with dbm.DatabaseBot(sts.db_name) as db:
                     await db.db_del_user_answers(id_user)
-                bot.remove_event_handler(callback_yn)
-                await run_anketa(id_user, event_bot, menu)                                      
+                await run_anketa(id_user, event_bot, menu)
+            bot.remove_event_handler(callback_yn)
             return 0
     else:
         await run_anketa(id_user, event_bot, menu)       
@@ -1459,8 +1573,8 @@ async def run_anketa(id_user, event_bot, menu):
     param menu: Show or not basic menu - True or False
     '''
     user_ent = await bot.get_entity(id_user)
-    nickname = user_ent.username
-    first_name = user_ent.first_name
+    nickname = user_ent.username or ""
+    first_name = user_ent.first_name or ""
     if not nickname:
         nickname = first_name
 
@@ -1470,7 +1584,7 @@ async def run_anketa(id_user, event_bot, menu):
     answers=defaultdict(list)
     res=defaultdict(list)
     
-    logging.debug(f"RUN_ANKETA: user_ent={user_ent}\nnickname={nickname}\nfirstname={first_name}\n")
+    logging.debug("Starting questionnaire for user %s", id_user)
 
     if sts.timeout_warning:
         message=_("⚠️На каждый ответ отводится ") + f"{sts.TIMEOUT_FOR_ANSWER}" + _(" секунд.\n\n")
@@ -1481,10 +1595,10 @@ async def run_anketa(id_user, event_bot, menu):
             if all_questions[cur_question]:
                 path_to_file = await exist_file(all_questions[cur_question][0])
             if path_to_file:
-                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")
+                await bot.send_file(id_user,file=path_to_file, caption=escape(str(cur_question)), parse_mode="html")
                 path_to_file=''                           
             else:
-                await bot.send_message(id_user, cur_question, parse_mode="html")
+                await bot.send_message(id_user, escape(str(cur_question)), parse_mode="html")
             break
     #Show question 
     for cur_question,variants  in all_questions.items():
@@ -1492,14 +1606,14 @@ async def run_anketa(id_user, event_bot, menu):
             #res = await simple_conversation(id_user, event_bot, question_number, question_id, cur_question)
             message = _("Вопрос ") + f"{question_number}:\n{cur_question}"
             answ = await unv_simple_conversation(id_user, event_bot, message)
-            logging.debug(f"End unv_select res= {answ}")
+            logging.debug("Completed simple question %d", question_number)
             res[question_id+1].append(answ)
-            logging.debug(f"End unv_select answers= {res[question_id+1]}")
+            logging.debug("Completed select question %d", question_number)
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.SELECT]: # select questinon
             message = _("Вопрос ") + f"{question_number}:\n{cur_question}"
             answ = await unv_select_conversation(id_user, event_bot, message, _('Ответить'), variants)
-            logging.debug(f"End unv_select res= {answ}")
+            logging.debug("Completed single-choice question %d", question_number)
             i=1
             for var in variants:
                 if var in answ:
@@ -1507,15 +1621,15 @@ async def run_anketa(id_user, event_bot, menu):
                 i = i + 1
             res[question_id+1].sort()
             #res = await select_conversation(id_user, event_bot, question_number, question_id, cur_question)
-            logging.debug(f"End unv_select answers= {res[question_id+1]}")
+            logging.debug("Completed single-choice question %d", question_number)
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.ONLYONE]: # onlyone questinon
             #res = await onlyone_conversation(id_user, event_bot, question_number, question_id, cur_question)
             message = _("Вопрос ") + f"{question_number}:\n{cur_question}"
             answ = await unv_onlyone_conversation(id_user, event_bot, message, variants)
-            logging.debug(f"End unv_select res= {answ}")
+            logging.debug("Completed single-choice question %d", question_number)
             res[question_id+1]=str(variants.index(answ)+1)
-            logging.debug(f"End unv_select answers= {res[question_id+1]}")
+            logging.debug("Stored answer for question %d", question_number)
             question_number = question_number + 1
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.HEADER] or \
              type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.FOOTER] or \
@@ -1524,11 +1638,11 @@ async def run_anketa(id_user, event_bot, menu):
             continue
         elif type_questions.get(cur_question) == sts.TYPES_OF_QUESTONS[sts.TEXT]: # text
             cur_question = re.sub(r"ID4T_\d+_", "", cur_question)
-            await bot.send_message(id_user, cur_question, parse_mode="html")
+            await bot.send_message(id_user, escape(str(cur_question)), parse_mode="html")
             question_id=question_id+1
             continue
 
-        logging.debug(f"Dict res answers: {res}")
+        logging.debug("Questionnaire progress: %d questions", question_id + 1)
         question_id=question_id+1
         if res:
             answers.update(res)
@@ -1540,13 +1654,13 @@ async def run_anketa(id_user, event_bot, menu):
             if all_questions[cur_question]:
                 path_to_file = await exist_file(all_questions[cur_question][0])                
             if path_to_file:
-                await bot.send_file(id_user,file=path_to_file, caption=cur_question, parse_mode="html")
+                await bot.send_file(id_user,file=path_to_file, caption=escape(str(cur_question)), parse_mode="html")
                 path_to_file=''
             else:
-                await bot.send_message(id_user, cur_question, parse_mode="html")
+                await bot.send_message(id_user, escape(str(cur_question)), parse_mode="html")
             break
 
-    logging.debug(f"Dict All answers: {answers}")
+    logging.debug("Collected answers for user %s", id_user)
 
     if answers:
         # Write Answers to DB
@@ -1557,7 +1671,7 @@ async def run_anketa(id_user, event_bot, menu):
         #await bot.send_message(id_user, message)
 
         dt = datetime.now().strftime('%d%m%Y_%H%M%S')
-        fname = f"reports/rpt_{id_user}_{dt}.pdf"
+        fname = str(REPORT_DIR / f"rpt_{id_user}_{dt}.pdf")
         logging.debug(f"Gen pdf filename: {fname}")
         await gen_pdf(answers,fname)
         message=_("📊 Ваш отчет")
@@ -1579,10 +1693,10 @@ async def main_frontend():
 
     @bot.on(events.NewMessage())
     async def bot_handler_nm_bot(event_bot):
-        logging.debug(f"Get NewMessage event_bot: {event_bot}")
         menu_level = 0
-      
-        id_user = event_bot.message.peer_id.user_id
+        if not event_bot.is_private or event_bot.sender_id is None:
+            return
+        id_user = event_bot.sender_id
         logging.info(f"LOGIN USER_ID:{id_user}")
         #user_ent = await bot.get_entity(id_user)
         #nickname = user_ent.username
@@ -1620,7 +1734,7 @@ async def main_frontend():
         menu_level = 0
         id_user = event_bot_choice.query.user_id
         #user_ent = await bot.get_entity(id_user)
-        logging.debug(f"Get callback event for user[{id_user}] {event_bot_choice}")
+        logging.debug("Get callback event for user[%s]", id_user)
        
         # If user not Admin ignore button actions  
         #if id_user not in sts.Admins.keys(): return 0
@@ -1649,14 +1763,21 @@ async def main_frontend():
             await del_admins(event_bot_choice)
         elif button_data == '/am_show_admins':
             await show_admins(event_bot_choice)
-        elif  'DEL_ADMIN_' in button_data:
+        elif button_data.startswith('DEL_ADMIN_'):
             # Delete admin
             data = button_data
-            admin_id_delete = int(data.replace('DEL_ADMIN_', ''))
+            try:
+                admin_id_delete = int(data.removeprefix('DEL_ADMIN_'))
+            except ValueError:
+                await event_bot_choice.answer("Invalid administrator", alert=True)
+                return
+            if admin_id_delete not in sts.Admins or admin_id_delete in sts.Admin_ids:
+                await event_bot_choice.answer("Administrator cannot be removed", alert=True)
+                return
             async with dbm.DatabaseBot(sts.db_name) as db:
                 await db.db_del_admins(admin_id_delete)
-            logging.info(f'All:{sts.Admins} admin_id_delete:_{admin_id_delete}_')
-            sts.Admins.pop(admin_id_delete)
+            logging.info("Administrator %s removed", admin_id_delete)
+            sts.Admins.pop(admin_id_delete, None)
             message=_("🏁Админ ") + f"{admin_id_delete}" +_(" удален🏁")
             await event_bot_choice.respond(message)
             await create_admin_menu(menu_level, event_bot_choice)
@@ -1707,16 +1828,11 @@ async def main():
     # Check for Admin and get user_id, clear and create new dict Admins for 
     # full data about Admin
    
-    ret = await check_nickname(sts.Builtin_admin)
-    if not ret:
-        logging.error(f'Admin with nickname: {sts.Builtin_admin} Not exist in Telegram! Check config file!')
-        print(f'Admin with nickname: {sts.Builtin_admin} Not exist in Telegram! Check config file!')
-        exit(-1)
+    sts.Admins.clear()
+    if sts.Admin_ids:
+        sts.Admins.update({admin_id: ("", "") for admin_id in sts.Admin_ids})
     else:
-        sts.Admins.clear()
-        sts.Admins.update(ret)
-        #print(f'Admin with nickname: {sts.Admins}')
-        #sexit(-1)
+        raise RuntimeError("No administrator IDs configured")
 
 
     async with dbm.DatabaseBot(sts.db_name) as db:
@@ -1731,8 +1847,7 @@ async def main():
                 adm[dict(row).get('admin_id')]=dict(row).get('admin_nickname'),dict(row).get('admin_firstname')
         sts.Admins.update(adm)
 
-        logging.info(f"Get Admins from db: {adm}\n")
-        logging.info(f'All:{sts.Admins}\n')
+        logging.info("Loaded %d database administrators", len(adm))
 
     if new_questions:
         all_questions.clear()
@@ -1750,7 +1865,7 @@ async def main():
             sts.report_title = key
             if all_questions[key]: 
                 sts.report_logo = all_questions[key][0]
-        logging.debug(f"Set report title = {sts.report_title} report logo = {sts.report_logo}")
+        logging.debug("Loaded report settings from validated questionnaire")
         
 
     # Run basic events loop
@@ -1822,5 +1937,3 @@ bot = TelegramClient(session, sts.api_id, sts.api_hash, system_version=sts.syste
 with bot:
     bot.loop.run_until_complete(main())
     bot.run_until_disconnected()
-
-

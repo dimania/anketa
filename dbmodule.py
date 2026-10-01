@@ -9,6 +9,7 @@ from datetime import datetime
 import logging
 #import os.path
 import asyncio
+import os
 import aiosqlite
 
 import settings as sts
@@ -21,6 +22,10 @@ class DatabaseBot:
 
     async def __aenter__(self):
         self.dbm = await aiosqlite.connect(self.db_file)
+        try:
+            os.chmod(self.db_file, 0o600)
+        except OSError:
+            logging.warning("Could not restrict database permissions")
         self.dbm.row_factory = aiosqlite.Row
         await self.dbm.execute("PRAGMA foreign_keys = ON")
         await self.dbm.commit()
@@ -111,44 +116,60 @@ class DatabaseBot:
         ''' Add new answer to database '''
         cur_date = datetime.now()
 
-        for ans in answers:
-            sep=', '
-            list_ans=sep.join(dict(answers).get(ans))
-            logging.debug(f"New string from list for write in db: {list_ans}")
-            cursor = await self.db_modify("INSERT INTO Answers (id_user, name_user, nick_user, question_id, answer_user, date) VALUES(?, ?, ?, ?, ?, ? )",\
-                                ( id_user, name_user, nick_user, ans, list_ans, cur_date ))
-        if cursor: 
-            #return str(cursor.lastrowid)
-            return True
-        else:
+        try:
+            async with self.lock:
+                await self.dbm.execute("BEGIN IMMEDIATE")
+                for ans in answers:
+                    values = answers.get(ans)
+                    if not isinstance(values, (list, tuple)):
+                        values = [values]
+                    list_ans = ', '.join(map(str, values))
+                    await self.dbm.execute(
+                        "INSERT INTO Answers (id_user, name_user, nick_user, question_id, answer_user, date) VALUES(?, ?, ?, ?, ?, ?)",
+                        (id_user, name_user, nick_user, ans, list_ans, cur_date),
+                    )
+                await self.dbm.commit()
+                return True
+        except Exception:
+            await self.dbm.rollback()
+            logging.exception("Could not store answers")
             return False
 
     async def db_rewrite_new_questions(self, questions, type_questions):#FIXME dont write variants
         ''' Rewrite question on database from Array '''
         cur_date = datetime.now()
-        #clear Previous Tables
-        cursor = await self.dbm.execute("DELETE FROM Questions")
-        cursor = await self.dbm.execute("DELETE FROM Answers")
-        cursor = await self.dbm.execute("DELETE FROM VariantsA")
-        await self.dbm.commit()
-        #load new questions in the table Questions
-        question_id=1
-        for qst_one in questions:
-            qst_type=type_questions.get(qst_one)
-            cursor = await self.db_modify("INSERT INTO Questions (question_id, question_type, question, date) VALUES(?, ?, ?, ? )",\
-                                    ( question_id, qst_type, qst_one,cur_date ))
-            variant_id=1
-            for variant in questions.get(qst_one):
-                 if variant:
-                    cursor = await self.db_modify("INSERT INTO VariantsA (question_id, variant_id, variant, date) VALUES(?, ?, ?, ? )",\
-                                    ( question_id, variant_id, variant, cur_date ))
-                    variant_id=variant_id+1
-            question_id=question_id+1            
-       
-        if cursor: 
-            return str(cursor.lastrowid)
-        else:
-            return None
+        # Replace the survey atomically.  A failed import must not destroy the
+        # previous questions and answers.
+        async with self.lock:
+            try:
+                await self.dbm.execute("BEGIN IMMEDIATE")
+                await self.dbm.execute("DELETE FROM Questions")
+                await self.dbm.execute("DELETE FROM Answers")
+                await self.dbm.execute("DELETE FROM VariantsA")
+
+                question_id = 1
+                last_row_id = None
+                for qst_one in questions:
+                    qst_type = type_questions.get(qst_one)
+                    cursor = await self.dbm.execute(
+                        "INSERT INTO Questions (question_id, question_type, question, date) VALUES(?, ?, ?, ?)",
+                        (question_id, qst_type, qst_one, cur_date),
+                    )
+                    last_row_id = cursor.lastrowid
+                    variant_id = 1
+                    for variant in questions.get(qst_one, []):
+                        if variant:
+                            await self.dbm.execute(
+                                "INSERT INTO VariantsA (question_id, variant_id, variant, date) VALUES(?, ?, ?, ?)",
+                                (question_id, variant_id, variant, cur_date),
+                            )
+                            variant_id += 1
+                    question_id += 1
+                await self.dbm.commit()
+                return str(last_row_id) if last_row_id is not None else None
+            except Exception:
+                await self.dbm.rollback()
+                raise
                         
     async def db_load_questions(self):
         ''' Load all question in Array '''
@@ -173,7 +194,7 @@ class DatabaseBot:
             val=[]
             new_questions_type[dict(row).get('question')]=dict(row).get('question_type')
 
-        logging.info(f"Get questions from db: {new_questions}")
+        logging.info("Loaded %d questions from database", len(new_questions))
         return new_questions_type, new_questions
     
     async def db_load_admins(self):
@@ -181,7 +202,7 @@ class DatabaseBot:
         new_admins=[]
         cursor = await self.dbm.execute("SELECT admin_id, admin_nickname, admin_firstname, date FROM Admins")
         rows = await cursor.fetchall()
-        logging.debug(f"Get questions rows: {rows}")
+        logging.debug("Loaded %d administrator records", len(rows))
 
         if rows:
             return rows
@@ -242,7 +263,7 @@ class DatabaseBot:
         ''' List all users who answer for stats'''
         cursor = await self.dbm.execute("SELECT DISTINCT name_user, nick_user FROM Answers")
         rows =   await cursor.fetchall()
-        logging.debug(f"Get users rows: {rows}")
+        logging.debug("Loaded %d distinct survey users", len(rows))
 
         if not rows: 
             return False
@@ -266,4 +287,3 @@ class DatabaseBot:
         cursor = await self.dbm.execute("DELETE FROM Answers WHERE id_user = ?", (id_user,))
         await self.dbm.commit()
         return await cursor.fetchall()
-
