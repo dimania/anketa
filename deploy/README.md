@@ -34,7 +34,7 @@ The `deploy` user needs Docker access. Add its public SSH key to
 
 ## GitHub configuration
 
-Add these repository or environment secrets:
+Create an Environment named `VPS_HOST` and add these Environment secrets:
 
 ```text
 VPS_HOST
@@ -53,5 +53,5 @@ and `VPS_PORT=2288`. Do not include the port in `VPS_HOST`.
 GHCR. The token owner must have access to the package; authorize it for the
 organization if GitHub requires SSO.
 
-`GHCR_READ_TOKEN` needs `read:packages` access. Configure the `production`
+`GHCR_READ_TOKEN` needs `read:packages` access. Configure the `VPS_HOST`
 environment with required reviewers if manual approval is desired.
