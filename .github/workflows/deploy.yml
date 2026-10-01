@@ -1,0 +1,108 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+      tag: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Normalize image name
+        id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "name=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: tools/Dockerfile
+          push: true
+          tags: ${{ steps.image.outputs.name }}:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment: production
+    steps:
+      - name: Checkout deployment files
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Copy Compose file
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i "$HOME/.ssh/id_ed25519" -o IdentitiesOnly=yes \
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" "mkdir -p /opt/anketa"
+          scp -i "$HOME/.ssh/id_ed25519" -o IdentitiesOnly=yes \
+            -P "$VPS_PORT" \
+            tools/docker-compose.yml \
+            "$VPS_USER@$VPS_HOST:/opt/anketa/compose.yml"
+
+      - name: Login and restart service
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          GHCR_USERNAME: ${{ github.repository_owner }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          IMAGE_REPOSITORY: ${{ needs.build.outputs.image }}
+          IMAGE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          printf '%s' "$GHCR_READ_TOKEN" | \
+            ssh -i "$HOME/.ssh/id_ed25519" -o IdentitiesOnly=yes \
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" \
+            "docker login ghcr.io --username '$GHCR_USERNAME' --password-stdin"
+          ssh -i "$HOME/.ssh/id_ed25519" -o IdentitiesOnly=yes \
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" \
+            "set -eu; export IMAGE_REPOSITORY='$IMAGE_REPOSITORY' IMAGE_TAG='$IMAGE_TAG'; \
+             docker compose --env-file /opt/anketa/shared/app.env \
+               -f /opt/anketa/compose.yml pull; \
+             docker compose --env-file /opt/anketa/shared/app.env \
+               -f /opt/anketa/compose.yml up -d --remove-orphans"
