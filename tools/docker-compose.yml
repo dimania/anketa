@@ -1,4 +1,3 @@
-name: anketa
 services:
   anketa_fe:
     image: ${IMAGE_REPOSITORY:?IMAGE_REPOSITORY is required}:${IMAGE_TAG:-latest}
