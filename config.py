@@ -74,9 +74,12 @@ db_name = _env("DB_NAME", "database.db")
 # if use proxy set here 
 # http required - use for set TelegramClient proxy parameter
 proxies = {
-  "http": "socks5://127.0.0.1:1080",
-  "https": "socks5://127.0.0.1:1080",
+  "http": "socks5://127.0.0.1:12274",
+  "https": "socks5://127.0.0.1:12274",
 }
+
+#Use proxy or d'not
+use_proxy = True # if use proxy set to True
 
 # Log file name for write logs programm
 logfile = _env("LOGFILE", "nnmbot.log")
@@ -85,8 +88,7 @@ logfile = _env("LOGFILE", "nnmbot.log")
 report_logo = 'logo.jpg'
 report_title = 'Анкета'
 
-#Use proxy or d'not
-use_proxy = False # if use proxy set to 1
+
 
 # Send warning for timeout answer to user  
 timeout_warning = True
