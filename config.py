@@ -71,15 +71,19 @@ ADMIN_IDS = {
 # Runtime paths can be overridden by environment variables in containers.
 db_name = _env("DB_NAME", "database.db")
 
-# if use proxy set here 
-# http required - use for set TelegramClient proxy parameter
+# Proxy settings. The proxy can run on the VPS when the container uses host
+# networking (see the production Compose file).
+proxy_scheme = _env("PROXY_SCHEME", "socks5")
+proxy_host = _env("PROXY_HOST", "127.0.0.1")
+proxy_port = _env("PROXY_PORT", "12274")
+proxy_url = f"{proxy_scheme}://{proxy_host}:{proxy_port}"
 proxies = {
-  "http": "socks5://127.0.0.1:12274",
-  "https": "socks5://127.0.0.1:12274",
+    "http": proxy_url,
+    "https": proxy_url,
 }
 
-#Use proxy or d'not
-use_proxy = True # if use proxy set to True
+# Use proxy or don't.
+use_proxy = _env("USE_PROXY", "true").lower() in {"1", "true", "yes", "on"}
 
 # Log file name for write logs programm
 logfile = _env("LOGFILE", "nnmbot.log")

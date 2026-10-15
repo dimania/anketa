@@ -117,7 +117,9 @@ def get_config(config=cfg):
         bot_name = setting("BOT_NAME", config.bot_name)
         db_name = setting("DB_NAME", config.db_name)
         logfile = setting("LOGFILE", config.logfile)
-        use_proxy = config.use_proxy
+        use_proxy = setting("USE_PROXY", config.use_proxy)
+        if isinstance(use_proxy, str):
+            use_proxy = use_proxy.lower() in {"1", "true", "yes", "on"}
         log_level = setting("LOG_LEVEL", config.log_level)
         Builtin_admin = getattr(config, "Builtin_admin", None)
         configured_admin_ids = getattr(config, "ADMIN_IDS", set())

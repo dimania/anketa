@@ -2,6 +2,7 @@ services:
   anketa_fe:
     image: ${IMAGE_REPOSITORY:?IMAGE_REPOSITORY is required}:${IMAGE_TAG:-latest}
     command: python anketa.py
+    network_mode: host
     restart: unless-stopped
     read_only: true
     security_opt:
