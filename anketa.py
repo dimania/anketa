@@ -435,8 +435,9 @@ async def gen_excel(filename):
             data['answer_user'].append(answer_cur)
             data_ws2[key_q].append(answer_cur)
             
-        #2024-03-03 11:46:05.488155
-        dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
+        # Support both legacy timestamps with microseconds and the ISO format
+        # used by the database layer now.
+        dt = datetime.fromisoformat(str(dict(row).get('date')))
         date = dt.strftime('%d.%m.%Y')
         time = dt.strftime('%H:%M')
         data['date'].append(date)
@@ -627,8 +628,7 @@ async def set_dataframe_sheet1(rows):
         else: 
             data['answer_user'].append(answer_cur)
             
-        #2024-03-03 11:46:05.488155
-        dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
+        dt = datetime.fromisoformat(str(dict(row).get('date')))
         date = dt.strftime('%d.%m.%Y')
         time = dt.strftime('%H:%M')
         data['date'].append(date)
@@ -654,13 +654,13 @@ async def set_dataframe_sheet2(rows):
         if dict(row).get('name_user') not in data['name_user']:
             data['name_user'].append(dict(row).get('name_user'))       
             data['nick_user'].append(dict(row).get('nick_user'))
-            #2024-03-03 11:46:05.488155
-            dt = datetime.strptime(dict(row).get('date'),'%Y-%m-%d %H:%M:%S.%f')
+            dt = datetime.fromisoformat(str(dict(row).get('date')))
             date = dt.strftime('%d.%m.%Y')
             time = dt.strftime('%H:%M')
             data['date'].append(date)
             data['time'].append(time)
             global_row = global_row + variant_row
+            variant_row = 0
         
         index=int(dict(row).get('question_id'))
         #data['question'].append(all_questions[index-1])
@@ -672,19 +672,16 @@ async def set_dataframe_sheet2(rows):
             i=False
             #variant_row = variant_row + 1 
             for variant in answer_cur.split(','): #FIXME HERE
-                data[key_q].insert(global_row,all_questions.get(key_q)[int(variant)-1])
+                data[key_q].insert(global_row + variant_row, all_questions.get(key_q)[int(variant)-1])
                 if i:
                     data['name_user'].append(' ')       
                     data['nick_user'].append(' ')        
                     data['date'].append(' ')
                     data['time'].append(' ')
-                    j=0
-                    while j != len_row:
-                        if j != index-1:
-                            key_q_tmp=list(all_questions)[j]
+                    for j, key_q_tmp in enumerate(all_questions):
+                        if j != index - 1:
                             #if not data[key_q_tmp]:
                             data[key_q_tmp].append(' ')
-                        j=j+1
                 variant_row = variant_row + 1
                 i=True
             continue    
