@@ -219,7 +219,7 @@ class DatabaseBot:
         for admin_id, names in new_admins.items():
             cursor = await self.db_modify("INSERT INTO Admins (admin_id, admin_nickname, admin_firstname, date) VALUES(?, ?, ?, ? )",\
                                     ( admin_id,  names[0],  names[1], cur_date ))
-        if cursor: 
+        if cursor is not None and hasattr(cursor, "lastrowid"):
             return str(cursor.lastrowid)
         else:
             return False
