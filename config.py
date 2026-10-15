@@ -100,4 +100,4 @@ log_level='INFO'
 
 # Set lang for dialogs. Possible values ru,en 
 # NOT USE NOW
-Lang='en'
+Lang='ru'
