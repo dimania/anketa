@@ -114,7 +114,5 @@ jobs:
             -p "$VPS_PORT" \
             "$VPS_USER@$VPS_HOST" \
             "set -eu; export IMAGE_REPOSITORY='$IMAGE_REPOSITORY' IMAGE_TAG='$IMAGE_TAG'; \
-             docker compose --env-file /opt/anketa/shared/app.env \
-               -f /opt/anketa/compose.yml pull; \
-             docker compose --env-file /opt/anketa/shared/app.env \
-               -f /opt/anketa/compose.yml up -d --remove-orphans"
+             docker-compose -f /opt/anketa/compose.yml pull; \
+             docker-compose -f /opt/anketa/compose.yml up -d --remove-orphans"
