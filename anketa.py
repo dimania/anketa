@@ -1915,25 +1915,30 @@ else:
     def _(message): return message
 
 
-if sts.use_proxy:
-    prx = re.search('(^.*)://(.*):(.*$)', sts.proxies.get('http'))
-    proxy = (prx.group(1), prx.group(2), int(prx.group(3)))
-else: 
-    proxy = None
+if __name__ == "__main__":
+    if sts.use_proxy:
+        prx = re.search('(^.*)://(.*):(.*$)', sts.proxies.get('http'))
+        proxy = (prx.group(1), prx.group(2), int(prx.group(3)))
+    else:
+        proxy = None
 
-# Set type session: file or env string
-if not sts.ses_bot_str:
-    session = sts.session_bot
-    logging.info("Use File session mode.")
-else:
-    session = StringSession(sts.ses_bot_str)
-    logging.info("Use String session mode.")
-    
-# Init and start Telegram client as bot
-bot = TelegramClient(session, sts.api_id, sts.api_hash, system_version=sts.system_version, proxy=proxy).start(bot_token=sts.mybot_token)
+    # Set type session: file or env string
+    if not sts.ses_bot_str:
+        session = sts.session_bot
+        logging.info("Use File session mode.")
+    else:
+        session = StringSession(sts.ses_bot_str)
+        logging.info("Use String session mode.")
 
-#bot.start()
+    # Init and start Telegram client as bot
+    bot = TelegramClient(
+        session,
+        sts.api_id,
+        sts.api_hash,
+        system_version=sts.system_version,
+        proxy=proxy,
+    ).start(bot_token=sts.mybot_token)
 
-with bot:
-    bot.loop.run_until_complete(main())
-    bot.run_until_disconnected()
+    with bot:
+        bot.loop.run_until_complete(main())
+        bot.run_until_disconnected()

@@ -114,7 +114,7 @@ class DatabaseBot:
 
     async def db_add_answer(self, id_user, name_user, nick_user, answers):
         ''' Add new answer to database '''
-        cur_date = datetime.now()
+        cur_date = datetime.now().isoformat(timespec="seconds")
 
         try:
             async with self.lock:
@@ -137,7 +137,7 @@ class DatabaseBot:
 
     async def db_rewrite_new_questions(self, questions, type_questions):#FIXME dont write variants
         ''' Rewrite question on database from Array '''
-        cur_date = datetime.now()
+        cur_date = datetime.now().isoformat(timespec="seconds")
         # Replace the survey atomically.  A failed import must not destroy the
         # previous questions and answers.
         async with self.lock:
@@ -213,7 +213,7 @@ class DatabaseBot:
         ''' Add admin in database 
             new_admin - dict key - user_id, vals - array [nickname][firstname]
         '''
-        cur_date = datetime.now()
+        cur_date = datetime.now().isoformat(timespec="seconds")
         
         #add new admins
         for admin_id, names in new_admins.items():
@@ -232,7 +232,7 @@ class DatabaseBot:
 
     async def db_update_answer(self, id_user, answer_user ): #NOTUSE
         ''' Update Answer in database '''
-        cur_date = datetime.now()
+        cur_date = datetime.now().isoformat(timespec="seconds")
       
         cursor = await self.db_modify("UPDATE Films SET answer_user=?, date=? WHERE id_user = ?", \
                             (answer_user, cur_date ))

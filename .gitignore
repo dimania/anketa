@@ -9,7 +9,8 @@ config_over_env.env
 test/*
 *.backup
 *.log
-__pycache__/*
+**/__pycache__/
+*.py[cod]
 *swp
 *.old
 .venv/*
