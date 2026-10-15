@@ -63,3 +63,18 @@ def test_get_new_questions_rejects_too_many_columns(tmp_path, monkeypatch):
     write_questions_file(source, [["simple", "Question", "unexpected", "extra"]])
 
     assert asyncio.run(anketa.get_new_questions(source)) == (False, False, False)
+
+
+def test_get_new_questions_rejects_long_question(tmp_path, monkeypatch):
+    source = tmp_path / "questions.xlsx"
+    monkeypatch.setattr(anketa.sts, "MAX_EXCEL_COLUMNS", 4)
+    write_questions_file(source, [["simple", "x" * 4097]])
+
+    assert asyncio.run(anketa.get_new_questions(source)) == (False, False, False)
+
+
+def test_get_new_questions_rejects_invalid_workbook(tmp_path):
+    source = tmp_path / "questions.xlsx"
+    source.write_bytes(b"not an xlsx file")
+
+    assert asyncio.run(anketa.get_new_questions(source)) == (False, False, False)
